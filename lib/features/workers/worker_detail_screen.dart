@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/advance_payment_model.dart';
+import '../../core/models/site_model.dart';
 import '../../core/models/worker_model.dart';
 import '../../core/providers/worker_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -677,4 +678,218 @@ class _AdvanceTile extends StatelessWidget {
   }
 
   String _fmt(DateTime d) => '${d.day}/${d.month}/${d.year}';
+}
+
+// ─────────────── WORKER SUMMARY PANEL (embeddable, no Scaffold) ───────────────
+
+/// A compact embeddable worker profile for use in master-detail layouts on
+/// wide desktop screens. Shows key info and a link to the full detail screen.
+class WorkerSummaryPanel extends StatefulWidget {
+  final int workerId;
+  const WorkerSummaryPanel({required this.workerId, super.key});
+
+  @override
+  State<WorkerSummaryPanel> createState() => _WorkerSummaryPanelState();
+}
+
+class _WorkerSummaryPanelState extends State<WorkerSummaryPanel> {
+  WorkerModel? _worker;
+  List<SiteModel> _sites = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(WorkerSummaryPanel old) {
+    super.didUpdateWidget(old);
+    if (old.workerId != widget.workerId) _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final prov = context.read<WorkerProvider>();
+    final worker = await prov.getWorker(widget.workerId);
+    if (!mounted) return;
+    if (worker != null) {
+      final sites = await prov.getWorkerSites(worker.id!);
+      if (!mounted) return;
+      setState(() {
+        _worker = worker;
+        _sites = sites;
+        _loading = false;
+      });
+    } else {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_worker == null) {
+      return const EmptyState(
+        icon: Icons.person_off,
+        title: 'Worker not found',
+        subtitle: 'This worker may have been deleted',
+      );
+    }
+
+    final w = _worker!;
+    final isActive = w.status == 'active';
+    final avatarColor =
+        isActive ? cs.primaryContainer : cs.surfaceContainerHighest;
+    final avatarTextColor = isActive ? cs.primary : cs.onSurface.withValues(alpha: 0.5);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: avatarColor,
+                      child: Text(
+                        w.name[0].toUpperCase(),
+                        style: TextStyle(
+                          color: avatarTextColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            w.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            w.trade,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: cs.onSurface.withValues(alpha: 0.6)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              StatusBadge(status: w.status),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit worker',
+                onPressed: () => context.go('/workers/${w.id}/edit'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.open_in_new_rounded),
+                tooltip: 'Open full profile',
+                onPressed: () => context.go('/workers/${w.id}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // ── Key info card ──
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Worker Details',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(height: 20),
+                  InfoRow(
+                    label: 'Daily Rate',
+                    value: CurrencyText.format(w.dailyRate),
+                    icon: Icons.attach_money_rounded,
+                  ),
+                  InfoRow(
+                    label: 'Half Day Rate',
+                    value: CurrencyText.format(w.halfDayRate),
+                    icon: Icons.timelapse_outlined,
+                  ),
+                  InfoRow(
+                    label: 'Phone',
+                    value: w.phone.isEmpty ? '—' : w.phone,
+                    icon: Icons.phone_outlined,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Assigned sites ──
+          SectionHeader(
+            title: 'Assigned Sites',
+            subtitle: '${_sites.length} site(s)',
+          ),
+          if (_sites.isEmpty)
+            const EmptyState(
+              icon: Icons.location_off_outlined,
+              title: 'Not assigned to any site',
+              subtitle: 'Assign this worker to a site from the Sites screen',
+            )
+          else
+            ..._sites.map(
+              (s) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: Icon(Icons.location_city_outlined,
+                      color: cs.primary),
+                  title: Text(s.name,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(s.area),
+                  trailing: StatusBadge(status: s.status),
+                  mouseCursor: SystemMouseCursors.click,
+                  onTap: () => context.go('/sites/${s.id}'),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 20),
+
+          // ── Open full profile button ──
+          OutlinedButton.icon(
+            onPressed: () => context.go('/workers/${w.id}'),
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: const Text('View paycheck, attendance & advances'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 44),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

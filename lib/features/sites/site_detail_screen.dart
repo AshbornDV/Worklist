@@ -696,3 +696,184 @@ class _WorkersSection extends StatelessWidget {
     );
   }
 }
+
+// ─────────────── SITE DETAIL PANEL (embeddable, no Scaffold) ───────────────
+
+/// An embeddable site detail view for use in master-detail layouts on wide
+/// desktop screens. Loads and shows the same data as [SiteDetailScreen] but
+/// without the full-screen Scaffold/AppBar wrapper.
+class SiteDetailPanel extends StatefulWidget {
+  final int siteId;
+  const SiteDetailPanel({required this.siteId, super.key});
+
+  @override
+  State<SiteDetailPanel> createState() => _SiteDetailPanelState();
+}
+
+class _SiteDetailPanelState extends State<SiteDetailPanel> {
+  SiteModel? _site;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(SiteDetailPanel old) {
+    super.didUpdateWidget(old);
+    if (old.siteId != widget.siteId) _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final prov = context.read<SiteProvider>();
+    final site = await prov.getSite(widget.siteId);
+    if (!mounted) return;
+    setState(() {
+      _site = site;
+      _loading = false;
+    });
+    if (site != null) {
+      prov.loadProducts(site.id!);
+      prov.loadSiteWorkers(site.id!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_site == null) {
+      return const EmptyState(
+        icon: Icons.location_off,
+        title: 'Site not found',
+        subtitle: 'This site may have been deleted',
+      );
+    }
+
+    final site = _site!;
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Panel header ──
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        site.name,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    StatusBadge(status: site.status),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit site',
+                      onPressed: () =>
+                          context.go('/sites/${site.id}/edit'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.open_in_new_rounded),
+                      tooltip: 'Open full screen',
+                      onPressed: () => context.go('/sites/${site.id}'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // ── Site info card ──
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Site Information',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const Divider(height: 20),
+                        InfoRow(
+                          label: 'Location',
+                          value: site.area,
+                          icon: Icons.place_outlined,
+                        ),
+                        if (site.workType != null &&
+                            site.workType!.isNotEmpty)
+                          InfoRow(
+                            label: 'Type of Work',
+                            value: site.workType!,
+                            icon: Icons.home_repair_service_outlined,
+                          ),
+                        if (site.workArea != null &&
+                            site.workArea!.isNotEmpty)
+                          InfoRow(
+                            label: 'Area of Work',
+                            value: site.workArea!,
+                            icon: Icons.square_foot_outlined,
+                          ),
+                        if (site.rate > 0)
+                          InfoRow(
+                            label: 'Rate',
+                            value: CurrencyText.format(site.rate),
+                            icon: Icons.price_change_outlined,
+                          ),
+                        if (site.notes != null && site.notes!.isNotEmpty)
+                          InfoRow(
+                            label: 'Notes',
+                            value: site.notes!,
+                            icon: Icons.notes_rounded,
+                          ),
+                        InfoRow(
+                          label: 'Created',
+                          value:
+                              '${site.createdAt.day} ${_months[site.createdAt.month - 1]} ${site.createdAt.year}',
+                          icon: Icons.calendar_today_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // ── Financial summary ──
+                _FinancialCard(site: site),
+                const SizedBox(height: 20),
+
+                // ── Products ──
+                _ProductsSection(siteId: site.id!),
+                const SizedBox(height: 20),
+
+                // ── Workers ──
+                _WorkersSection(siteId: site.id!),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+}

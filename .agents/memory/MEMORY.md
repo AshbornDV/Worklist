@@ -1,0 +1,2 @@
+- [Provider generation token](provider-gen-token.md) — clear() must increment a generation counter so in-flight DB loads discard stale results after logout/account switch.
+- [Master-detail breakpoint](master-detail-layout.md) — sites/workers use 1100px breakpoint for master-detail; SiteDetailPanel/WorkerSummaryPanel are embedded panels in same file to access private widgets.
