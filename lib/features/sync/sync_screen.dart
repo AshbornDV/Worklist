@@ -227,7 +227,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 Text(
                   'Worklist now syncs this account to Firebase after sign-in and after data changes. These buttons are for manual refresh.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurface.withOpacity(0.62),
+                        color: cs.onSurface.withValues(alpha: 0.62),
                       ),
                 ),
               ],
@@ -372,7 +372,7 @@ class _SyncScreenState extends State<SyncScreen> {
                 Text(
                   'Use the same username and password on both devices. Pull replaces this device data with the server data; push replaces the server data with this device data.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurface.withOpacity(0.62),
+                        color: cs.onSurface.withValues(alpha: 0.62),
                       ),
                 ),
               ],

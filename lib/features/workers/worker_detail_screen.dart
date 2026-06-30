@@ -316,7 +316,7 @@ class _PaycheckTab extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD32F2F).withOpacity(0.1),
+                          color: const Color(0xFFD32F2F).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
@@ -436,7 +436,7 @@ class _AttendanceTab extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -631,18 +631,18 @@ class _AdvanceTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(advance.notes!,
                   style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.6), fontSize: 13)),
+                      color: cs.onSurface.withValues(alpha: 0.6), fontSize: 13)),
             ],
             const SizedBox(height: 8),
             Row(
               children: [
                 Icon(Icons.schedule,
-                    size: 13, color: cs.onSurface.withOpacity(0.5)),
+                    size: 13, color: cs.onSurface.withValues(alpha: 0.5)),
                 const SizedBox(width: 4),
                 Text(
                   'Requested: ${_fmt(advance.requestDate)}',
                   style: TextStyle(
-                      fontSize: 12, color: cs.onSurface.withOpacity(0.5)),
+                      fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
               ],
             ),

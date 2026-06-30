@@ -50,7 +50,7 @@ class _WorkersListScreenState extends State<WorkersListScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 840;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerHighest.withOpacity(0.3),
+      backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
         title: const Text('Workers'),
         backgroundColor: cs.surface,
@@ -200,10 +200,11 @@ class _WorkerCard extends StatelessWidget {
     final isActive = worker.status == 'active';
     final avatarColor =
         isActive ? cs.primaryContainer : cs.surfaceContainerHighest;
-    final avatarText = isActive ? cs.primary : cs.onSurface.withOpacity(0.5);
+    final avatarText = isActive ? cs.primary : cs.onSurface.withValues(alpha: 0.5);
 
     return Card(
       child: InkWell(
+        mouseCursor: SystemMouseCursors.click,
         onTap: () => context.go('/workers/${worker.id}'),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -234,7 +235,7 @@ class _WorkerCard extends StatelessWidget {
                         Text(
                           worker.trade,
                           style: TextStyle(
-                              color: cs.onSurface.withOpacity(0.6),
+                              color: cs.onSurface.withValues(alpha: 0.6),
                               fontSize: 12),
                         ),
                       ],
@@ -251,12 +252,12 @@ class _WorkerCard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(Icons.phone_outlined,
-                          size: 14, color: cs.onSurface.withOpacity(0.5)),
+                          size: 14, color: cs.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(
                         worker.phone.isEmpty ? 'No phone' : worker.phone,
                         style: TextStyle(
-                            fontSize: 12, color: cs.onSurface.withOpacity(0.6)),
+                            fontSize: 12, color: cs.onSurface.withValues(alpha: 0.6)),
                       ),
                     ],
                   ),
@@ -275,7 +276,7 @@ class _WorkerCard extends StatelessWidget {
                       Text(
                         '/day',
                         style: TextStyle(
-                            fontSize: 11, color: cs.onSurface.withOpacity(0.5)),
+                            fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
                       ),
                     ],
                   ),

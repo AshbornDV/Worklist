@@ -48,7 +48,7 @@ class _HomeContentState extends State<HomeContent> {
     final isDesktop = MediaQuery.of(context).size.width >= 840;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerHighest.withOpacity(0.3),
+      backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
         title: const Text('Dashboard'),
         backgroundColor: cs.surface,
@@ -91,7 +91,7 @@ class _HomeContentState extends State<HomeContent> {
                     Text(
                       'Here\'s what\'s happening on your projects today.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: cs.onSurface.withOpacity(0.6),
+                            color: cs.onSurface.withValues(alpha: 0.6),
                           ),
                     ),
                     const SizedBox(height: 24),
@@ -211,7 +211,7 @@ class _StatsGrid extends StatelessWidget {
         value: '${stats['activeWorkers'] ?? 0}',
         icon: Icons.people_rounded,
         iconColor: const Color(0xFF2E7D32),
-        bgColor: const Color(0xFF2E7D32).withOpacity(0.15),
+        bgColor: const Color(0xFF2E7D32).withValues(alpha: 0.15),
         onTap: () => context.go('/workers'),
       ),
       StatCard(
@@ -219,14 +219,14 @@ class _StatsGrid extends StatelessWidget {
         value: '${stats['completedSites'] ?? 0}',
         icon: Icons.check_circle_rounded,
         iconColor: const Color(0xFF00897B),
-        bgColor: const Color(0xFF00897B).withOpacity(0.15),
+        bgColor: const Color(0xFF00897B).withValues(alpha: 0.15),
       ),
       StatCard(
         label: 'Pending Advances',
         value: '${stats['pendingAdvances'] ?? 0}',
         icon: Icons.pending_actions_rounded,
         iconColor: const Color(0xFFF57C00),
-        bgColor: const Color(0xFFF57C00).withOpacity(0.15),
+        bgColor: const Color(0xFFF57C00).withValues(alpha: 0.15),
         onTap: () => context.go('/workers'),
       ),
     ];
@@ -355,7 +355,7 @@ class _FinStat extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
           textAlign: TextAlign.center,
         ),
@@ -395,7 +395,7 @@ class _QuickActions extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: a.color.withOpacity(0.12),
+                              color: a.color.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(a.icon, color: a.color, size: 26),

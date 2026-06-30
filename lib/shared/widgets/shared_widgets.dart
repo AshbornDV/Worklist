@@ -58,7 +58,7 @@ class StatCard extends StatelessWidget {
                     Text(
                       label,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: cs.onSurface.withOpacity(0.6),
+                            color: cs.onSurface.withValues(alpha: 0.6),
                           ),
                     ),
                   ],
@@ -108,7 +108,7 @@ class SectionHeader extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurface.withOpacity(0.6),
+                          color: cs.onSurface.withValues(alpha: 0.6),
                         ),
                   ),
               ],
@@ -145,7 +145,7 @@ class InfoRow extends StatelessWidget {
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: cs.onSurface.withOpacity(0.5)),
+            Icon(icon, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
             const SizedBox(width: 8),
           ],
           SizedBox(
@@ -153,7 +153,7 @@ class InfoRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurface.withOpacity(0.6),
+                    color: cs.onSurface.withValues(alpha: 0.6),
                   ),
             ),
           ),
@@ -186,9 +186,9 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         status.replaceAll('_', ' ').toUpperCase(),
@@ -222,9 +222,9 @@ class AttendanceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         label,
@@ -263,12 +263,12 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 72, color: cs.onSurface.withOpacity(0.2)),
+            Icon(icon, size: 72, color: cs.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: cs.onSurface.withOpacity(0.5),
+                    color: cs.onSurface.withValues(alpha: 0.5),
                     fontWeight: FontWeight.bold,
                   ),
               textAlign: TextAlign.center,
@@ -278,7 +278,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: cs.onSurface.withOpacity(0.4),
+                      color: cs.onSurface.withValues(alpha: 0.4),
                     ),
                 textAlign: TextAlign.center,
               ),

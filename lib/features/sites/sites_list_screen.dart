@@ -54,7 +54,7 @@ class _SitesListScreenState extends State<SitesListScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 840;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerHighest.withOpacity(0.3),
+      backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
         title: const Text('Sites'),
         backgroundColor: cs.surface,
@@ -213,6 +213,7 @@ class _SiteCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
+        mouseCursor: SystemMouseCursors.click,
         onTap: () => context.go('/sites/${site.id}'),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -270,13 +271,13 @@ class _SiteCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(Icons.place_outlined,
-                      size: 14, color: cs.onSurface.withOpacity(0.5)),
+                      size: 14, color: cs.onSurface.withValues(alpha: 0.5)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       site.area,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: cs.onSurface.withOpacity(0.6),
+                            color: cs.onSurface.withValues(alpha: 0.6),
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -287,7 +288,7 @@ class _SiteCard extends StatelessWidget {
                       (site.latitude != null && site.longitude != null)) ...[
                     const SizedBox(width: 6),
                     Icon(Icons.map_outlined,
-                        size: 15, color: cs.primary.withOpacity(0.8)),
+                        size: 15, color: cs.primary.withValues(alpha: 0.8)),
                   ],
                 ],
               ),
@@ -296,13 +297,13 @@ class _SiteCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(Icons.home_repair_service_outlined,
-                        size: 14, color: cs.onSurface.withOpacity(0.5)),
+                        size: 14, color: cs.onSurface.withValues(alpha: 0.5)),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         site.workType!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurface.withOpacity(0.6),
+                              color: cs.onSurface.withValues(alpha: 0.6),
                             ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -322,7 +323,7 @@ class _SiteCard extends StatelessWidget {
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall
-                              ?.copyWith(color: cs.onSurface.withOpacity(0.5))),
+                              ?.copyWith(color: cs.onSurface.withValues(alpha: 0.5))),
                       CurrencyText(site.estimatedCost,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                           compact: true),
@@ -336,7 +337,7 @@ class _SiteCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: site.isPaid
                                   ? const Color(0xFF2E7D32)
-                                  : cs.onSurface.withOpacity(0.5),
+                                  : cs.onSurface.withValues(alpha: 0.5),
                               fontWeight: site.isPaid ? FontWeight.bold : null,
                             ),
                       ),
@@ -370,7 +371,7 @@ class _SiteCard extends StatelessWidget {
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall
-                    ?.copyWith(color: cs.onSurface.withOpacity(0.5)),
+                    ?.copyWith(color: cs.onSurface.withValues(alpha: 0.5)),
               ),
             ],
           ),

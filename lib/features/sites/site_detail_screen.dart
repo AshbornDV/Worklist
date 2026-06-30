@@ -77,7 +77,7 @@ class _SiteDetailScreenState extends State<SiteDetailScreen> {
 
     final site = _site!;
     return Scaffold(
-      backgroundColor: cs.surfaceContainerHighest.withOpacity(0.3),
+      backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
       body: CustomScrollView(
         slivers: [
           // ── Header ──
@@ -345,7 +345,7 @@ class _FinancialCard extends StatelessWidget {
             Text(
               '${site.completionPercentage.toStringAsFixed(1)}% of project value received',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurface.withOpacity(0.6),
+                    color: cs.onSurface.withValues(alpha: 0.6),
                   ),
             ),
           ],
@@ -409,7 +409,7 @@ class _ProductsSection extends StatelessWidget {
             label: const Text('Add'),
           ),
         ),
-        if (prov.isLoading)
+        if (prov.productsLoading)
           const Center(
               child: Padding(
             padding: EdgeInsets.all(20),
@@ -531,7 +531,7 @@ class _ProductTile extends StatelessWidget {
             ? Text(
                 'Delivered: ${_fmt(product.deliveryDate!)}',
                 style: TextStyle(
-                    fontSize: 12, color: cs.onSurface.withOpacity(0.6)),
+                    fontSize: 12, color: cs.onSurface.withValues(alpha: 0.6)),
               )
             : null,
         trailing: Row(

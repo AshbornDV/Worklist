@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/site_provider.dart';
+import '../../core/providers/worker_provider.dart';
 
 class _NavItem {
   final IconData icon;
@@ -143,7 +145,7 @@ class _DesktopLayout extends StatelessWidget {
                                   style: TextStyle(
                                       fontSize: 10,
                                       color: cs.onPrimaryContainer
-                                          .withOpacity(0.7)),
+                                          .withValues(alpha: 0.7)),
                                 ),
                               ],
                             ),
@@ -169,7 +171,7 @@ class _DesktopLayout extends StatelessWidget {
                             selected ? item.activeIcon : item.icon,
                             color: selected
                                 ? cs.primary
-                                : cs.onSurface.withOpacity(0.65),
+                                : cs.onSurface.withValues(alpha: 0.65),
                           ),
                           title: Text(
                             item.label,
@@ -179,7 +181,7 @@ class _DesktopLayout extends StatelessWidget {
                                   : FontWeight.normal,
                               color: selected
                                   ? cs.primary
-                                  : cs.onSurface.withOpacity(0.8),
+                                  : cs.onSurface.withValues(alpha: 0.8),
                             ),
                           ),
                           selected: selected,
@@ -198,12 +200,14 @@ class _DesktopLayout extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: ListTile(
                     leading:
-                        Icon(Icons.logout, color: cs.error.withOpacity(0.8)),
+                        Icon(Icons.logout, color: cs.error.withValues(alpha: 0.8)),
                     title: Text('Logout',
-                        style: TextStyle(color: cs.error.withOpacity(0.8))),
+                        style: TextStyle(color: cs.error.withValues(alpha: 0.8))),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     onTap: () {
+                      context.read<SiteProvider>().clear();
+                      context.read<WorkerProvider>().clear();
                       auth.logout();
                       context.go('/login');
                     },
@@ -261,7 +265,7 @@ class _MobileLayout extends StatelessWidget {
                   Text(
                     '${auth.currentUser?.username ?? ''} · ${auth.currentUser?.role ?? ''}',
                     style: TextStyle(
-                        color: cs.onPrimaryContainer.withOpacity(0.7),
+                        color: cs.onPrimaryContainer.withValues(alpha: 0.7),
                         fontSize: 13),
                   ),
                 ],
@@ -284,7 +288,7 @@ class _MobileLayout extends StatelessWidget {
                             color: selected ? cs.primary : null)),
                     selected: selected,
                     selectedColor: cs.primary,
-                    selectedTileColor: cs.primaryContainer.withOpacity(0.5),
+                    selectedTileColor: cs.primaryContainer.withValues(alpha: 0.5),
                     onTap: () {
                       Navigator.pop(context);
                       _navigate(context, i);
@@ -297,6 +301,8 @@ class _MobileLayout extends StatelessWidget {
               leading: Icon(Icons.logout, color: cs.error),
               title: Text('Logout', style: TextStyle(color: cs.error)),
               onTap: () {
+                context.read<SiteProvider>().clear();
+                context.read<WorkerProvider>().clear();
                 auth.logout();
                 context.go('/login');
               },

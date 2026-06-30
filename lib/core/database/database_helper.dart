@@ -42,7 +42,7 @@ class DatabaseHelper {
     final dbPath = p.join(await getDatabasesPath(), 'worklist.db');
     return openDatabase(
       dbPath,
-      version: 4,
+      version: 5,
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -52,6 +52,7 @@ class DatabaseHelper {
   Future<void> _onCreate(Database db, int version) async {
     await _createUsersTable(db);
     await _createBusinessTables(db);
+    await _createIndexes(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -59,6 +60,7 @@ class DatabaseHelper {
       await _dropBusinessTables(db);
       await db.delete('users', where: 'username = ?', whereArgs: ['admin']);
       await _createBusinessTables(db);
+      await _createIndexes(db);
       return;
     }
     if (oldVersion < 3) {
@@ -71,6 +73,10 @@ class DatabaseHelper {
       await _addColumnIfMissing(db, 'sites', 'google_maps_url', 'TEXT');
       await _addColumnIfMissing(db, 'sites', 'latitude', 'REAL');
       await _addColumnIfMissing(db, 'sites', 'longitude', 'REAL');
+    }
+    if (oldVersion < 5) {
+      // Add performance indexes for all high-frequency query patterns.
+      await _createIndexes(db);
     }
   }
 
@@ -206,6 +212,35 @@ class DatabaseHelper {
         FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE
       )
     ''');
+  }
+
+  /// Creates performance indexes for all high-frequency query patterns.
+  /// Uses IF NOT EXISTS so it is safe to call on both fresh installs and upgrades.
+  Future<void> _createIndexes(Database db) async {
+    // sites: getAllSites filters by user_id, orders by created_at
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sites_user_created ON sites(user_id, created_at)');
+    // workers: getAllWorkers filters by user_id, orders by name
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_workers_user_name ON workers(user_id, name)');
+    // products: getProductsBySite filters by user_id + site_id, orders by delivery_date
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_products_site ON products(user_id, site_id, delivery_date)');
+    // site_workers: JOIN from sites→workers and workers→sites
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sw_site ON site_workers(user_id, site_id)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sw_worker ON site_workers(user_id, worker_id)');
+    // attendance: lookup by worker+date and by site+date
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_att_worker_date ON attendance(user_id, worker_id, date)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_att_site_date ON attendance(user_id, site_id, date)');
+    // advance_payments: pending list and monthly approved totals
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_adv_user_status ON advance_payments(user_id, status)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_adv_worker ON advance_payments(user_id, worker_id, approved_date)');
   }
 
   String hashPassword(String password) =>
@@ -671,10 +706,12 @@ class DatabaseHelper {
     final args = <dynamic>[workerId, userId, 'approved'];
 
     if (year != null && month != null) {
-      final start = '$year-${month.toString().padLeft(2, '0')}-01';
-      final end = '$year-${month.toString().padLeft(2, '0')}-31';
-      where += ' AND approved_date >= ? AND approved_date <= ?';
-      args.addAll([start, end]);
+      // Use strftime to extract year-month from the ISO datetime stored in
+      // approved_date. String-prefix comparison would be brittle against
+      // timestamps that include a timezone offset or vary in format.
+      final monthStr = '$year-${month.toString().padLeft(2, '0')}';
+      where += " AND strftime('%Y-%m', approved_date) = ?";
+      args.add(monthStr);
     }
 
     final rows = await db.rawQuery(
@@ -684,17 +721,22 @@ class DatabaseHelper {
     return (rows.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
+  /// Returns dashboard statistics in 3 queries instead of the original 6,
+  /// using conditional aggregation for the site-level metrics.
   Future<Map<String, dynamic>> getDashboardStats() async {
     final db = await database;
     final userId = _requireUserId();
 
-    final activeSites = Sqflite.firstIntValue(
-          await db.rawQuery(
-            "SELECT COUNT(*) FROM sites WHERE status = 'active' AND user_id = ?",
-            [userId],
-          ),
-        ) ??
-        0;
+    // All site aggregates in one pass.
+    final siteRow = (await db.rawQuery('''
+      SELECT
+        SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END) AS activeSites,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedSites,
+        SUM(estimated_cost)   AS totalCost,
+        SUM(advance_received) AS totalPaid
+      FROM sites WHERE user_id = ?
+    ''', [userId])).first;
+
     final activeWorkers = Sqflite.firstIntValue(
           await db.rawQuery(
             "SELECT COUNT(*) FROM workers WHERE status = 'active' AND user_id = ?",
@@ -702,16 +744,7 @@ class DatabaseHelper {
           ),
         ) ??
         0;
-    final totalCost = (await db.rawQuery(
-      'SELECT SUM(estimated_cost) as t FROM sites WHERE user_id = ?',
-      [userId],
-    ))
-        .first['t'];
-    final totalPaid = (await db.rawQuery(
-      'SELECT SUM(advance_received) as t FROM sites WHERE user_id = ?',
-      [userId],
-    ))
-        .first['t'];
+
     final pendingAdvances = Sqflite.firstIntValue(
           await db.rawQuery(
             "SELECT COUNT(*) FROM advance_payments WHERE status = 'pending' AND user_id = ?",
@@ -719,20 +752,13 @@ class DatabaseHelper {
           ),
         ) ??
         0;
-    final completedSites = Sqflite.firstIntValue(
-          await db.rawQuery(
-            "SELECT COUNT(*) FROM sites WHERE status = 'completed' AND user_id = ?",
-            [userId],
-          ),
-        ) ??
-        0;
 
     return {
-      'activeSites': activeSites,
-      'completedSites': completedSites,
+      'activeSites': (siteRow['activeSites'] as num?)?.toInt() ?? 0,
+      'completedSites': (siteRow['completedSites'] as num?)?.toInt() ?? 0,
       'activeWorkers': activeWorkers,
-      'totalProjectCost': (totalCost as num?)?.toDouble() ?? 0.0,
-      'totalPaidAmount': (totalPaid as num?)?.toDouble() ?? 0.0,
+      'totalProjectCost': (siteRow['totalCost'] as num?)?.toDouble() ?? 0.0,
+      'totalPaidAmount': (siteRow['totalPaid'] as num?)?.toDouble() ?? 0.0,
       'pendingAdvances': pendingAdvances,
     };
   }

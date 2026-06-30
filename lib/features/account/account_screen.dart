@@ -104,7 +104,7 @@ class _AccountScreenState extends State<AccountScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerHighest.withOpacity(0.3),
+      backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
         title: const Text('Account'),
         backgroundColor: cs.surface,

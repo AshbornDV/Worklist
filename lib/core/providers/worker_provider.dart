@@ -41,8 +41,14 @@ class WorkerProvider extends ChangeNotifier {
   List<AttendanceModel> _attendanceRecords = [];
   List<AdvancePaymentModel> _advances = [];
   List<AdvancePaymentModel> _pendingAdvances = [];
-  bool _isLoading = false;
+  bool _workersLoading = false;
+  bool _attendanceLoading = false;
+  bool _advancesLoading = false;
   String? _error;
+
+  /// Incremented by [clear] to invalidate all in-flight async loads,
+  /// preventing stale previous-user data from being written back after logout.
+  int _generation = 0;
 
   List<WorkerModel> get workers => List.unmodifiable(_workers);
   List<AttendanceModel> get attendanceRecords =>
@@ -50,22 +56,48 @@ class WorkerProvider extends ChangeNotifier {
   List<AdvancePaymentModel> get advances => List.unmodifiable(_advances);
   List<AdvancePaymentModel> get pendingAdvances =>
       List.unmodifiable(_pendingAdvances);
-  bool get isLoading => _isLoading;
+
+  /// True while the workers list is loading (used by WorkersListScreen).
+  bool get isLoading => _workersLoading;
+
   String? get error => _error;
 
   int get activeWorkerCount =>
       _workers.where((w) => w.status == 'active').length;
 
+  /// Clears all cached data and invalidates any in-flight loads.
+  /// Call this on logout so stale previous-user data never appears.
+  void clear() {
+    _generation++;
+    _workers = [];
+    _attendanceRecords = [];
+    _advances = [];
+    _pendingAdvances = [];
+    _workersLoading = false;
+    _attendanceLoading = false;
+    _advancesLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   // ─────────────── WORKERS ───────────────
 
   Future<void> loadWorkers() async {
-    _setLoading(true);
+    final gen = _generation;
+    _workersLoading = true;
+    notifyListeners();
     try {
-      _workers = await _db.getAllWorkers();
+      final result = await _db.getAllWorkers();
+      if (_generation != gen) return;
+      _workers = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _workersLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -118,17 +150,25 @@ class WorkerProvider extends ChangeNotifier {
   // ─────────────── ATTENDANCE ───────────────
 
   Future<void> loadAttendance(int workerId, {int? year, int? month}) async {
-    _setLoading(true);
+    final gen = _generation;
+    _attendanceLoading = true;
+    notifyListeners();
     try {
-      _attendanceRecords = await _db.getAttendanceByWorker(
+      final result = await _db.getAttendanceByWorker(
         workerId,
         year: year,
         month: month,
       );
+      if (_generation != gen) return;
+      _attendanceRecords = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _attendanceLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -155,24 +195,40 @@ class WorkerProvider extends ChangeNotifier {
   // ─────────────── ADVANCES ───────────────
 
   Future<void> loadAdvances(int workerId) async {
-    _setLoading(true);
+    final gen = _generation;
+    _advancesLoading = true;
+    notifyListeners();
     try {
-      _advances = await _db.getAdvancesByWorker(workerId);
+      final result = await _db.getAdvancesByWorker(workerId);
+      if (_generation != gen) return;
+      _advances = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _advancesLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> loadPendingAdvances() async {
-    _setLoading(true);
+    final gen = _generation;
+    _advancesLoading = true;
+    notifyListeners();
     try {
-      _pendingAdvances = await _db.getAllPendingAdvances();
+      final result = await _db.getAllPendingAdvances();
+      if (_generation != gen) return;
+      _pendingAdvances = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _advancesLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -265,11 +321,6 @@ class WorkerProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
-    notifyListeners();
-  }
-
-  void _setLoading(bool val) {
-    _isLoading = val;
     notifyListeners();
   }
 

@@ -12,13 +12,28 @@ class SiteProvider extends ChangeNotifier {
   List<SiteModel> _sites = [];
   List<ProductModel> _products = [];
   List<WorkerModel> _siteWorkers = [];
-  bool _isLoading = false;
+  bool _sitesLoading = false;
+  bool _productsLoading = false;
+  bool _siteWorkersLoading = false;
   String? _error;
+
+  /// Incremented by [clear] to invalidate all in-flight async loads,
+  /// preventing stale previous-user data from being written back after logout.
+  int _generation = 0;
 
   List<SiteModel> get sites => List.unmodifiable(_sites);
   List<ProductModel> get products => List.unmodifiable(_products);
   List<WorkerModel> get siteWorkers => List.unmodifiable(_siteWorkers);
-  bool get isLoading => _isLoading;
+
+  /// True while the sites list is loading (used by SitesListScreen).
+  bool get isLoading => _sitesLoading;
+
+  /// True while the products list for the current site is loading.
+  bool get productsLoading => _productsLoading;
+
+  /// True while the workers list for the current site is loading.
+  bool get siteWorkersLoading => _siteWorkersLoading;
+
   String? get error => _error;
 
   // ── Stats for dashboard ──
@@ -28,16 +43,38 @@ class SiteProvider extends ChangeNotifier {
   double get totalAdvanceReceived =>
       _sites.fold(0, (sum, s) => sum + s.advanceReceived);
 
+  /// Clears all cached data and invalidates any in-flight loads.
+  /// Call this on logout so stale previous-user data never appears.
+  void clear() {
+    _generation++;
+    _sites = [];
+    _products = [];
+    _siteWorkers = [];
+    _sitesLoading = false;
+    _productsLoading = false;
+    _siteWorkersLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   // ─────────────── SITES ───────────────
 
   Future<void> loadSites() async {
-    _setLoading(true);
+    final gen = _generation;
+    _sitesLoading = true;
+    notifyListeners();
     try {
-      _sites = await _db.getAllSites();
+      final result = await _db.getAllSites();
+      if (_generation != gen) return;
+      _sites = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _sitesLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -91,13 +128,21 @@ class SiteProvider extends ChangeNotifier {
   // ─────────────── PRODUCTS ───────────────
 
   Future<void> loadProducts(int siteId) async {
-    _setLoading(true);
+    final gen = _generation;
+    _productsLoading = true;
+    notifyListeners();
     try {
-      _products = await _db.getProductsBySite(siteId);
+      final result = await _db.getProductsBySite(siteId);
+      if (_generation != gen) return;
+      _products = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _productsLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -147,13 +192,21 @@ class SiteProvider extends ChangeNotifier {
   // ─────────────── SITE WORKERS ───────────────
 
   Future<void> loadSiteWorkers(int siteId) async {
-    _setLoading(true);
+    final gen = _generation;
+    _siteWorkersLoading = true;
+    notifyListeners();
     try {
-      _siteWorkers = await _db.getWorkersBySite(siteId);
+      final result = await _db.getWorkersBySite(siteId);
+      if (_generation != gen) return;
+      _siteWorkers = result;
     } catch (e) {
+      if (_generation != gen) return;
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      if (_generation == gen) {
+        _siteWorkersLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -190,11 +243,6 @@ class SiteProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
-    notifyListeners();
-  }
-
-  void _setLoading(bool val) {
-    _isLoading = val;
     notifyListeners();
   }
 

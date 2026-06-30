@@ -288,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : 'Only registered Worklist accounts can open saved data.',
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurface.withOpacity(0.62),
+                                      color: cs.onSurface.withValues(alpha: 0.62),
                                     ),
                             textAlign: TextAlign.center,
                           ),
