@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "867700541514",
+    "project_id": "worklist-armoon",
+    "storage_bucket": "worklist-armoon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:867700541514:android:7762f61d5690ffcb2afeb3",
+        "android_client_info": {
+          "package_name": "com.example.worklist"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATBlLwSqsb7OAKhF1e1vkbNYddfZVZC1c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
