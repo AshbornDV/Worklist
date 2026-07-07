@@ -432,19 +432,3 @@ class _QA {
   const _QA(this.label, this.icon, this.color, this.route);
 }
 
-// Helper extension for CurrencyText (static use)
-extension CurrencyFormat on CurrencyText {
-  static String format(double v) {
-    final abs = v.abs();
-    final prefix = v < 0 ? '-' : '';
-    final str = abs.toStringAsFixed(0);
-    final buf = StringBuffer();
-    int count = 0;
-    for (int i = str.length - 1; i >= 0; i--) {
-      if (count > 0 && count % 3 == 0) buf.write(',');
-      buf.write(str[i]);
-      count++;
-    }
-    return 'Rs. $prefix${buf.toString().split('').reversed.join('')}';
-  }
-}

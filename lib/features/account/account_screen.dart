@@ -197,8 +197,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       children: [
                         CircleAvatar(
                           backgroundColor: cs.primaryContainer,
-                          child: Icon(Icons.check_circle_rounded,
-                              color: const Color(0xFF2E7D32)),
+                          child: const Icon(Icons.check_circle_rounded,
+                              color: Color(0xFF2E7D32)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

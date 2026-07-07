@@ -15,13 +15,13 @@ class CollectionReminderService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    final android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final windows = WindowsInitializationSettings(
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const windows = WindowsInitializationSettings(
       appName: 'Worklist',
       appUserModelId: 'com.example.worklist',
       guid: 'a3b5c7d9-e1f2-4a6b-8c0d-1e2f3a4b5c6d',
     );
-    final initSettings = InitializationSettings(
+    const initSettings = InitializationSettings(
       android: android,
       windows: windows,
     );
@@ -75,7 +75,7 @@ class CollectionReminderService {
     required String title,
     required String body,
   }) async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'worklist_collections',
       'Payment collection reminders',
       channelDescription:
@@ -84,8 +84,8 @@ class CollectionReminderService {
       priority: Priority.high,
       visibility: NotificationVisibility.public,
     );
-    final windowsDetails = WindowsNotificationDetails();
-    final details = NotificationDetails(
+    const windowsDetails = WindowsNotificationDetails();
+    const details = NotificationDetails(
       android: androidDetails,
       windows: windowsDetails,
     );

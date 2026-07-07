@@ -228,18 +228,4 @@ class GoogleOAuthService {
     return FirebaseConfig.googleSignInUnavailableMessage();
   }
 
-  String _firebaseAuthMessage(FirebaseAuthException error) {
-    switch (error.code) {
-      case 'operation-not-allowed':
-        return 'Enable the Google sign-in provider in Firebase Authentication.';
-      case 'admin-restricted-operation':
-        return 'Google sign-in is restricted for this Firebase project.';
-      case 'account-exists-with-different-credential':
-        return 'An account already exists with the same email using a different sign-in method.';
-      case 'invalid-credential':
-        return 'Google sign-in credentials were invalid or expired. Try again.';
-      default:
-        return error.message ?? 'Google sign-in failed.';
-    }
-  }
 }

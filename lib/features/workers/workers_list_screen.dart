@@ -194,7 +194,7 @@ class _WorkersListScreenState extends State<WorkersListScreen> {
             // ── Detail panel ──
             Expanded(
               child: _selectedWorkerId == null
-                  ? Center(
+                  ? const Center(
                       child: EmptyState(
                         icon: Icons.people_outline,
                         title: 'Select a worker',

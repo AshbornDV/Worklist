@@ -281,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       return;
                                     }
                                     final ok = await auth.signInWithGoogle();
-                                    if (ok && mounted) context.go('/');
+                                    if (ok && context.mounted) context.go('/');
                                   },
                             icon: const Icon(Icons.g_mobiledata_rounded),
                             label: const Text('Continue with Google'),

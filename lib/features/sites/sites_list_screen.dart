@@ -197,7 +197,7 @@ class _SitesListScreenState extends State<SitesListScreen> {
             // ── Detail panel ──
             Expanded(
               child: _selectedSiteId == null
-                  ? Center(
+                  ? const Center(
                       child: EmptyState(
                         icon: Icons.location_city_outlined,
                         title: 'Select a site',
