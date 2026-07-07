@@ -9,7 +9,6 @@ import 'features/auth/login_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/dashboard/home_content.dart';
 import 'features/dashboard/collections_screen.dart';
-import 'features/sync/sync_screen.dart';
 import 'features/sites/site_detail_screen.dart';
 import 'features/sites/site_form_screen.dart';
 import 'features/sites/sites_list_screen.dart';
@@ -93,8 +92,6 @@ class _SiteWorkerManagerAppState extends State<SiteWorkerManagerApp> {
             GoRoute(
                 path: '/attendance',
                 builder: (_, __) => const AttendanceScreen()),
-            GoRoute(
-                path: '/sync', builder: (_, __) => const SyncScreen()),
             GoRoute(
                 path: '/account', builder: (_, __) => const AccountScreen()),
           ],

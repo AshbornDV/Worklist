@@ -19,7 +19,6 @@ const _navItems = [
   _NavItem(Icons.location_city_outlined, Icons.location_city, 'Sites', '/sites'),
   _NavItem(Icons.people_outline, Icons.people_rounded, 'Workers', '/workers'),
   _NavItem(Icons.fact_check_outlined, Icons.fact_check_rounded, 'Attendance', '/attendance'),
-  _NavItem(Icons.sync_outlined, Icons.sync_rounded, 'Sync', '/sync'),
   _NavItem(Icons.account_circle_outlined, Icons.account_circle_rounded, 'Account', '/account'),
 ];
 
@@ -29,8 +28,7 @@ int _indexFromRoute(String loc) {
   if (loc.startsWith('/sites')) return 2;
   if (loc.startsWith('/workers')) return 3;
   if (loc.startsWith('/attendance')) return 4;
-  if (loc.startsWith('/sync')) return 5;
-  if (loc.startsWith('/account')) return 6;
+  if (loc.startsWith('/account')) return 5;
   return 0;
 }
 
