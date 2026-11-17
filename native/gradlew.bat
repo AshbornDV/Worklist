@@ -35,6 +35,11 @@ set APP_HOME=%DIRNAME%
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
 for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
+@rem Gradle uses the current directory as the project dir. Flutter's trimmed
+@rem wrapper omitted this line; restore it so `native\gradlew.bat` works from
+@rem any working directory, as the milestone exit criteria assume.
+cd /d "%APP_HOME%"
+
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
