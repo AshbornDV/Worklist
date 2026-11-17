@@ -54,3 +54,18 @@ VALUES (1, 2, 1, '2026-03-04', 'absent', '2026-03-04T09:00:00.000');
 -- Chandra: full 03-02 only.
 INSERT INTO attendance (user_id, worker_id, site_id, date, type, created_at)
 VALUES (1, 3, 2, '2026-03-02', 'full', '2026-03-02T09:00:00.000');
+
+-- Approved advances. approved_date is in March 2026 because
+-- getApprovedAdvancesTotal filters strftime('%Y-%m', approved_date).
+INSERT INTO advance_payments (user_id, worker_id, amount, request_date, status, approved_date, notes, created_at)
+VALUES (1, 1, 1850, '2026-03-10', 'approved', '2026-03-10T10:00:00.000', NULL, '2026-03-10T10:00:00.000');
+INSERT INTO advance_payments (user_id, worker_id, amount, request_date, status, approved_date, notes, created_at)
+VALUES (1, 2, 2500, '2026-03-12', 'approved', '2026-03-12T10:00:00.000', NULL, '2026-03-12T10:00:00.000');
+-- Pending advance for Chandra. Excluded from approved advance totals.
+INSERT INTO advance_payments (user_id, worker_id, amount, request_date, status, approved_date, notes, created_at)
+VALUES (1, 3, 3000, '2026-03-13', 'pending', NULL, NULL, '2026-03-13T10:00:00.000');
+
+-- Stored draft payroll for Anil. The month literal must be exactly 2026-03-01
+-- so getPayrollForMonth can find it, even though toMap emits an ISO timestamp.
+INSERT INTO payroll (user_id, worker_id, month, full_days, half_days, daily_rate, overtime_hours, overtime_rate, advance_amount, bonus, deductions, net_salary, status, notes, created_at, updated_at)
+VALUES (1, 1, '2026-03-01', 3, 1, 950, 0, 0, 1850, 0, 0, 1475, 'draft', NULL, '2026-03-15T12:00:00.000', '2026-03-15T12:00:00.000');
