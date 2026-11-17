@@ -1,0 +1,13 @@
+# Gradle build/cache output
+.gradle/
+build/
+*/build/
+**/build/
+
+# Machine-specific SDK path — never commit
+local.properties
+
+# IDE / local files
+.idea/
+*.iml
+*.hprof
