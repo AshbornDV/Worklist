@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/advance_payment_model.dart';
@@ -218,7 +218,12 @@ class _PaycheckTab extends StatelessWidget {
         '${_months[selectedMonth.month - 1]} ${selectedMonth.year}';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         children: [
           // ── Worker Info ──
@@ -747,7 +752,12 @@ class _WorkerSummaryPanelState extends State<WorkerSummaryPanel> {
     final avatarTextColor = isActive ? cs.primary : cs.onSurface.withValues(alpha: 0.5);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

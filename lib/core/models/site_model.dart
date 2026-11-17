@@ -9,6 +9,9 @@ class SiteModel {
   final double? longitude;
   final String? workType;
   final String? workArea;
+  final String? workAreaUnit;
+  final double? workTypeRate;
+  final double? finalCost;
   final double rate;
   final String status;
   final double estimatedCost;
@@ -17,6 +20,10 @@ class SiteModel {
   final String siteSize;
   final DateTime? lastPaidDate;
   final String? notes;
+  final double? budget;
+  final String? manager;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -29,6 +36,9 @@ class SiteModel {
     this.longitude,
     this.workType,
     this.workArea,
+    this.workAreaUnit,
+    this.workTypeRate,
+    this.finalCost,
     this.rate = 0.0,
     this.status = 'active',
     this.estimatedCost = 0.0,
@@ -37,16 +47,21 @@ class SiteModel {
     this.siteSize = AppConstants.siteSizeSmall,
     this.lastPaidDate,
     this.notes,
+    this.budget,
+    this.manager,
+    this.startDate,
+    this.endDate,
     required this.createdAt,
     required this.updatedAt,
   });
 
+  double get totalCost => finalCost ?? estimatedCost;
   double get totalReceived => advanceReceived + constructionPaid;
-  double get balance => estimatedCost - totalReceived;
+  double get balance => totalCost - totalReceived;
   bool get isPaid => balance <= 0;
   bool get hasRemainingPayment => balance > 0;
-  double get completionPercentage => estimatedCost > 0
-      ? (totalReceived / estimatedCost * 100).clamp(0.0, 100.0)
+  double get completionPercentage => totalCost > 0
+      ? (totalReceived / totalCost * 100).clamp(0.0, 100.0)
       : 0.0;
 
   int get collectionReminderDays => siteSize == AppConstants.siteSizeLarge
@@ -73,6 +88,9 @@ class SiteModel {
     double? longitude,
     String? workType,
     String? workArea,
+    String? workAreaUnit,
+    double? workTypeRate,
+    double? finalCost,
     double? rate,
     String? status,
     double? estimatedCost,
@@ -81,6 +99,10 @@ class SiteModel {
     String? siteSize,
     DateTime? lastPaidDate,
     String? notes,
+    double? budget,
+    String? manager,
+    DateTime? startDate,
+    DateTime? endDate,
     DateTime? updatedAt,
   }) =>
       SiteModel(
@@ -92,6 +114,9 @@ class SiteModel {
         longitude: longitude ?? this.longitude,
         workType: workType ?? this.workType,
         workArea: workArea ?? this.workArea,
+        workAreaUnit: workAreaUnit ?? this.workAreaUnit,
+        workTypeRate: workTypeRate ?? this.workTypeRate,
+        finalCost: finalCost ?? this.finalCost,
         rate: rate ?? this.rate,
         status: status ?? this.status,
         estimatedCost: estimatedCost ?? this.estimatedCost,
@@ -100,6 +125,10 @@ class SiteModel {
         siteSize: siteSize ?? this.siteSize,
         lastPaidDate: lastPaidDate ?? this.lastPaidDate,
         notes: notes ?? this.notes,
+        budget: budget ?? this.budget,
+        manager: manager ?? this.manager,
+        startDate: startDate ?? this.startDate,
+        endDate: endDate ?? this.endDate,
         createdAt: createdAt,
         updatedAt: updatedAt ?? DateTime.now(),
       );
@@ -113,6 +142,9 @@ class SiteModel {
         'longitude': longitude,
         'work_type': workType,
         'work_area': workArea,
+        'work_area_unit': workAreaUnit,
+        'work_type_rate': workTypeRate,
+        'final_cost': finalCost,
         'rate': rate,
         'status': status,
         'estimated_cost': estimatedCost,
@@ -121,6 +153,10 @@ class SiteModel {
         'site_size': siteSize,
         'last_paid_date': lastPaidDate?.toIso8601String(),
         'notes': notes,
+        if (budget != null) 'budget': budget,
+        if (manager != null) 'manager': manager,
+        if (startDate != null) 'start_date': startDate!.toIso8601String(),
+        if (endDate != null) 'end_date': endDate!.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
       };
@@ -134,6 +170,9 @@ class SiteModel {
         longitude: (map['longitude'] as num?)?.toDouble(),
         workType: map['work_type'] as String?,
         workArea: map['work_area'] as String?,
+        workAreaUnit: map['work_area_unit'] as String?,
+        workTypeRate: (map['work_type_rate'] as num?)?.toDouble(),
+        finalCost: (map['final_cost'] as num?)?.toDouble(),
         rate: (map['rate'] as num?)?.toDouble() ?? 0.0,
         status: map['status'] as String? ?? 'active',
         estimatedCost: (map['estimated_cost'] as num?)?.toDouble() ?? 0.0,
@@ -144,6 +183,14 @@ class SiteModel {
             ? null
             : DateTime.parse(map['last_paid_date'] as String),
         notes: map['notes'] as String?,
+        budget: (map['budget'] as num?)?.toDouble(),
+        manager: map['manager'] as String?,
+        startDate: map['start_date'] == null
+            ? null
+            : DateTime.parse(map['start_date'] as String),
+        endDate: map['end_date'] == null
+            ? null
+            : DateTime.parse(map['end_date'] as String),
         createdAt: DateTime.parse(map['created_at'] as String),
         updatedAt: DateTime.parse(map['updated_at'] as String),
       );

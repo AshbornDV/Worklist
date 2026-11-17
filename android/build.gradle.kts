@@ -22,3 +22,6 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+// See android/filepicker-kotlin.gradle for why this shim exists.
+apply(from = "filepicker-kotlin.gradle")

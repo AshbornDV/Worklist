@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
-import '../database/database_helper.dart';
 import '../firebase/firebase_cloud_service.dart';
 import '../models/advance_payment_model.dart';
 import '../models/attendance_model.dart';
+import '../models/payroll_model.dart';
 import '../models/site_model.dart';
+import '../models/worker_document_model.dart';
 import '../models/worker_model.dart';
+import '../models/worker_performance_model.dart';
+import '../repositories/worker_repository.dart';
+import '../repositories/payroll_repository.dart';
 
 class WorkerPaycheck {
   final int workerId;
@@ -34,7 +38,8 @@ class WorkerPaycheck {
 }
 
 class WorkerProvider extends ChangeNotifier {
-  final _db = DatabaseHelper();
+  final _repo = WorkerRepository();
+  final _payroll = PayrollRepository();
   final _cloud = FirebaseCloudService.instance;
 
   List<WorkerModel> _workers = [];
@@ -83,7 +88,7 @@ class WorkerProvider extends ChangeNotifier {
     _workersLoading = true;
     notifyListeners();
     try {
-      final result = await _db.getAllWorkers();
+      final result = await _repo.getAllWorkers();
       if (_generation != gen) return;
       _workers = result;
     } catch (e) {
@@ -97,11 +102,11 @@ class WorkerProvider extends ChangeNotifier {
     }
   }
 
-  Future<WorkerModel?> getWorker(int id) => _db.getWorkerById(id);
+  Future<WorkerModel?> getWorker(int id) => _repo.getWorkerById(id);
 
   Future<bool> addWorker(WorkerModel worker) async {
     try {
-      final id = await _db.insertWorker(worker);
+      final id = await _repo.insertWorker(worker);
       _workers.add(worker.copyWith(id: id));
       _workers.sort((a, b) => a.name.compareTo(b.name));
       notifyListeners();
@@ -116,7 +121,7 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<bool> updateWorker(WorkerModel worker) async {
     try {
-      await _db.updateWorker(worker);
+      await _repo.updateWorker(worker);
       final idx = _workers.indexWhere((w) => w.id == worker.id);
       if (idx != -1) _workers[idx] = worker;
       notifyListeners();
@@ -131,8 +136,205 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<bool> deleteWorker(int id) async {
     try {
-      await _db.deleteWorker(id);
+      await _repo.deleteWorker(id);
+      await _repo.deleteWorkerDocumentsByWorker(id);
+      await _repo.deleteWorkerPerformanceByWorker(id);
       _workers.removeWhere((w) => w.id == id);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<List<WorkerModel>> searchWorkers(String query) async {
+    if (query.isEmpty) return _workers;
+    final lowerQuery = query.toLowerCase();
+    return _workers
+        .where((w) =>
+            w.name.toLowerCase().contains(lowerQuery) ||
+            w.phone.contains(query) ||
+            w.trade.toLowerCase().contains(lowerQuery))
+        .toList();
+  }
+
+  // ─────────────── WORKER DOCUMENTS ───────────────
+
+  Future<List<WorkerDocument>> getWorkerDocuments(int workerId) async {
+    return _repo.getWorkerDocuments(workerId);
+  }
+
+  Future<WorkerDocument?> getWorkerDocumentByType(
+    int workerId,
+    String documentType,
+  ) async {
+    return _repo.getWorkerDocumentByType(workerId, documentType);
+  }
+
+  Future<bool> addWorkerDocument(WorkerDocument document) async {
+    try {
+      await _repo.insertWorkerDocument(document);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteWorkerDocument(int id) async {
+    try {
+      await _repo.deleteWorkerDocument(id);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ─────────────── WORKER PERFORMANCE ───────────────
+
+  Future<List<WorkerPerformance>> getWorkerPerformance(int workerId) async {
+    return _repo.getWorkerPerformance(workerId);
+  }
+
+  Future<WorkerPerformance?> getWorkerPerformanceForMonth(
+    int workerId,
+    DateTime month,
+  ) async {
+    return _repo.getWorkerPerformanceForMonth(workerId, month);
+  }
+
+  Future<bool> addWorkerPerformance(WorkerPerformance performance) async {
+    try {
+      await _repo.insertWorkerPerformance(performance);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateWorkerPerformance(WorkerPerformance performance) async {
+    try {
+      await _repo.updateWorkerPerformance(performance);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteWorkerPerformance(int id) async {
+    try {
+      await _repo.deleteWorkerPerformance(id);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ─────────────── PAYROLL ───────────────
+
+  Future<List<PayrollModel>> getPayrollForMonth(DateTime month) async {
+    return _payroll.getPayrollForMonth(month);  }
+
+  Future<PayrollModel?> getPayroll(int workerId, DateTime month) async {
+    return _payroll.getPayroll(workerId, month);
+  }
+
+  /// Auto-fills attendance & advance data, then returns a PayrollModel with
+  /// editable fields defaulted to zero.
+  Future<PayrollModel> generatePayroll(
+    WorkerModel worker,
+    int year,
+    int month,
+  ) async {
+    final summary =
+        await _repo.getMonthlyAttendanceSummary(worker.id!, year, month);
+    final fullDays = summary['full'] ?? 0;
+    final halfDays = summary['half'] ?? 0;
+    final advances = await _repo.getApprovedAdvancesTotal(
+      worker.id!,
+      year: year,
+      month: month,
+    );
+
+    final baseWage =
+        (fullDays * worker.dailyRate) + (halfDays * worker.halfDayRate);
+    final netSalary = baseWage - advances;
+
+    return PayrollModel(
+      workerId: worker.id!,
+      month: DateTime(year, month, 1),
+      fullDays: fullDays,
+      halfDays: halfDays,
+      dailyRate: worker.dailyRate,
+      overtimeHours: 0.0,
+      overtimeRate: worker.overtimeRate,
+      advanceAmount: advances,
+      bonus: 0.0,
+      deductions: 0.0,
+      netSalary: netSalary < 0 ? 0.0 : netSalary,
+      status: 'draft',
+      notes: null,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  /// Inserts or updates a payroll record and triggers cloud sync.
+  Future<bool> savePayroll(PayrollModel payroll) async {
+    try {
+      if (payroll.id != null) {
+        await _payroll.updatePayroll(payroll);
+      } else {
+        await _payroll.insertPayroll(payroll);
+      }
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deletePayroll(int id) async {
+    try {
+      await _payroll.deletePayroll(id);
+      notifyListeners();
+      _syncCloud();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> markPayrollPaid(int id) async {
+    try {
+      await _payroll.setPayrollStatus(id, 'paid');
       notifyListeners();
       _syncCloud();
       return true;
@@ -149,7 +351,7 @@ class WorkerProvider extends ChangeNotifier {
     final gen = _generation;
     notifyListeners();
     try {
-      final result = await _db.getAttendanceByWorker(
+      final result = await _repo.getAttendanceByWorker(
         workerId,
         year: year,
         month: month,
@@ -170,12 +372,12 @@ class WorkerProvider extends ChangeNotifier {
     int siteId,
     String date,
   ) async {
-    return _db.getSiteAttendanceForDate(siteId, date);
+    return _repo.getSiteAttendanceForDate(siteId, date);
   }
 
   Future<bool> recordAttendance(AttendanceModel attendance) async {
     try {
-      await _db.upsertAttendance(attendance);
+      await _repo.upsertAttendance(attendance);
       notifyListeners();
       _syncCloud();
       return true;
@@ -192,7 +394,7 @@ class WorkerProvider extends ChangeNotifier {
     final gen = _generation;
     notifyListeners();
     try {
-      final result = await _db.getAdvancesByWorker(workerId);
+      final result = await _repo.getAdvancesByWorker(workerId);
       if (_generation != gen) return;
       _advances = result;
     } catch (e) {
@@ -209,7 +411,7 @@ class WorkerProvider extends ChangeNotifier {
     final gen = _generation;
     notifyListeners();
     try {
-      final result = await _db.getAllPendingAdvances();
+      final result = await _repo.getAllPendingAdvances();
       if (_generation != gen) return;
       _pendingAdvances = result;
     } catch (e) {
@@ -224,7 +426,7 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<bool> requestAdvance(AdvancePaymentModel advance) async {
     try {
-      final id = await _db.insertAdvance(advance);
+      final id = await _repo.insertAdvance(advance);
       _advances.insert(0, advance.copyWith(id: id));
       notifyListeners();
       _syncCloud();
@@ -238,7 +440,7 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<bool> approveAdvance(int advanceId) async {
     try {
-      await _db.approveAdvance(advanceId);
+      await _repo.approveAdvance(advanceId);
       final idx = _advances.indexWhere((a) => a.id == advanceId);
       if (idx != -1) {
         _advances[idx] = _advances[idx].copyWith(
@@ -259,7 +461,7 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<bool> rejectAdvance(int advanceId) async {
     try {
-      await _db.rejectAdvance(advanceId);
+      await _repo.rejectAdvance(advanceId);
       final idx = _advances.indexWhere((a) => a.id == advanceId);
       if (idx != -1) {
         _advances[idx] = _advances[idx].copyWith(status: 'rejected');
@@ -283,12 +485,12 @@ class WorkerProvider extends ChangeNotifier {
     int month,
   ) async {
     final summary =
-        await _db.getMonthlyAttendanceSummary(worker.id!, year, month);
+        await _repo.getMonthlyAttendanceSummary(worker.id!, year, month);
     final fullDays = summary['full'] ?? 0;
     final halfDays = summary['half'] ?? 0;
     final gross =
         (fullDays * worker.dailyRate) + (halfDays * worker.halfDayRate);
-    final advances = await _db.getApprovedAdvancesTotal(
+    final advances = await _repo.getApprovedAdvancesTotal(
       worker.id!,
       year: year,
       month: month,
@@ -307,14 +509,18 @@ class WorkerProvider extends ChangeNotifier {
   }
 
   Future<List<SiteModel>> getWorkerSites(int workerId) =>
-      _db.getSitesByWorker(workerId);
+      _repo.getSitesByWorker(workerId);
 
   void clearError() {
     _error = null;
     notifyListeners();
   }
 
+  Future<void> reloadAll() async {
+    await loadWorkers();
+  }
+
   void _syncCloud() {
-    _cloud.uploadActiveUserInBackground();
+    _cloud.uploadActiveUserInBackground(reason: 'worker-data-changed');
   }
 }

@@ -1,17 +1,54 @@
-# Worklist
+# Worklist — Site & Worker Management
 
-A new Flutter project.
+A cross-platform (Windows + Android) field-operations app for construction/site
+managers. Track sites, workers, attendance, payments, inventory, payroll, and
+services, with a local-first SQLite store synced to Firebase per Google account.
 
-## Getting Started
+## Platforms
+- **Windows** (desktop, `flutter build windows --release`)
+- **Android** (phone/tablet, `flutter build apk --release`)
 
-This project is a starting point for a Flutter application.
+Responsive UI adapts across phone (<600dp), tablet (600–1023dp) and
+desktop (≥1024dp). Handheld form factors always use the compact
+(phone) layout; Windows uses the full responsive shell.
 
-A few resources to get you started if this is your first Flutter project:
+## Quick start
+```bash
+flutter pub get
+flutter run -d windows      # desktop
+flutter run -d <android-device>  # Android
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Architecture (summary)
+- **Data layer** — single user-scoped SQLite database (`sqflite` +
+  `sqflite_common_ffi`) with foreign keys + covering indexes. Per-user
+  row isolation via `user_id`.
+- **Sync layer** — `FirebaseCloudService` mirrors business data and
+  notification *metadata* to Firebase Realtime Database keyed by Google `uid`.
+  Conflict resolution is latest-wins per record; offline edits are queued
+  and retried with exponential backoff.
+- **Notification framework** — self-contained pipeline:
+  `NotificationRule`s → `NotificationRuleEvaluator` → dedupe via
+  `NotificationHistoryRepository` → `NotificationScheduler`. Background
+  delivery via Android WorkManager (15-min floor) and a Windows in-process
+  timer. See `NOTIFICATIONS_ARCHITECTURE.md`.
+- **State** — `provider` for app-wide providers (`AuthProvider`,
+  `SiteProvider`, `WorkerProvider`, `StoreProductProvider`,
+  `UserServiceProvider`, `SyncService`, theme).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+See `SYSTEM_ARCHITECTURE.md` for the full component map.
+
+## Release artifacts
+Built releases live in `dist/`:
+- `Worklist.apk` — Android release
+- `windows.zip` / `worklist-windows/` — Windows release folder
+
+## Documentation
+- `README.md` — this file
+- `RELEASE_NOTES.md` — per-version highlights + known limitations
+- `CHANGELOG.md` — chronological change log
+- `NOTIFICATIONS_ARCHITECTURE.md` — notification subsystem design
+- `SYSTEM_ARCHITECTURE.md` — overall system design
+
+## License
+Proprietary — Parash Newar. All rights reserved.

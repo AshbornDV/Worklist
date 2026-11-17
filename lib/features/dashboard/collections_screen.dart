@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/database/database_helper.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../core/models/site_model.dart';
 import '../../shared/widgets/shared_widgets.dart';
 
@@ -54,7 +55,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
             : Builder(
                 builder: (ctx) => IconButton(
                   icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  onPressed: () => RootScaffoldKey.of(ctx)?.currentState?.openEndDrawer(),
                 ),
               ),
         actions: [

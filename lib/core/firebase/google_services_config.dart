@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Reads OAuth client IDs from the bundled [google-services.json] on Android.
@@ -18,7 +19,8 @@ class GoogleServicesConfig {
       final raw = await rootBundle.loadString('assets/google-services.json');
       final json = jsonDecode(raw) as Map<String, dynamic>;
       _webClientId = _extractWebClientId(json);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[GoogleServices] Failed to load google-services.json: $e');
       _webClientId = null;
     }
   }

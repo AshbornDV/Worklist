@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/providers/auth_provider.dart';
 
@@ -29,6 +31,47 @@ class _AccountScreenState extends State<AccountScreen> {
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
+  }
+
+  Future<void> _pullFromCloud() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore from cloud?'),
+        content: const Text('This will replace ALL local data with the cloud backup.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Restore')),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (confirmed != true) return;
+
+    setState(() => _syncing = true);
+    try {
+      final pulled = await context.read<AuthProvider>().pullFromCloud();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(pulled ? 'Data restored from cloud.' : 'No cloud data found.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Future<void> _linkEmail() async {
@@ -167,24 +210,48 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   const SizedBox(height: 18),
                   _StatusRow(
-                    icon: Icons.cloud_done_outlined,
+                    icon: auth.cloudSignedIn
+                        ? Icons.cloud_done_outlined
+                        : Icons.cloud_off_outlined,
                     label: 'Firebase cloud',
                     value: auth.cloudSignedIn
-                        ? 'Connected and auto-saving'
+                        ? 'Connected'
                         : 'Not connected',
                     color: auth.cloudSignedIn
                         ? const Color(0xFF2E7D32)
                         : cs.outline,
                   ),
+                  if (auth.lastSyncedAt != null) ...[
+                    const SizedBox(height: 6),
+                    _StatusRow(
+                      icon: Icons.schedule,
+                      label: 'Last synced',
+                      value: _formatTime(auth.lastSyncedAt!),
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ],
+                  if (auth.cloudNotice != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      auth.cloudNotice!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.error,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Text(
-                    'Your sites, workers, attendance, payments, and account data are saved to Firebase automatically after changes and loaded again when you sign in on another device.',
+                    'All your data is saved to this device. Changes are automatically backed up to Firebase when connected.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
               ),
             ),
           ),
+          if (!auth.cloudSignedIn) ...[
+            const SizedBox(height: 12),
+            _DebugTokenCard(),
+          ],
           if (auth.isGoogleLinked) ...[
             const SizedBox(height: 12),
             Card(
@@ -265,16 +332,116 @@ class _AccountScreenState extends State<AccountScreen> {
                             height: 24,
                             child: CircularProgressIndicator(strokeWidth: 2.5),
                           )
-                        : const Icon(Icons.sync_rounded),
+                        : const Icon(Icons.cloud_upload_rounded),
                     title: const Text('Save to cloud now'),
-                    subtitle: const Text('Automatic sync is already on.'),
+                    subtitle: Text(auth.lastSyncedAt != null
+                        ? 'Last synced ${_formatTime(auth.lastSyncedAt!)}'
+                        : 'Upload your data to Firebase'),
                     onTap: _syncing ? null : _syncNow,
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.cloud_download_rounded),
+                    title: const Text('Restore from cloud'),
+                    subtitle: const Text('Replace local data with cloud backup'),
+                    onTap: _syncing ? null : _pullFromCloud,
                   ),
                 ],
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _DebugTokenCard extends StatefulWidget {
+  @override
+  State<_DebugTokenCard> createState() => _DebugTokenCardState();
+}
+
+class _DebugTokenCardState extends State<_DebugTokenCard> {
+  final _tokens = <String, String>{};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTokens();
+  }
+
+  Future<void> _loadTokens() async {
+    final prefs = await SharedPreferences.getInstance();
+    _tokens['Android'] =
+        prefs.getString('worklist_android_app_check_debug_token') ?? '';
+    _tokens['Windows'] =
+        prefs.getString('worklist_windows_app_check_debug_token') ?? '';
+    if (!mounted) return;
+    setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const SizedBox.shrink();
+    final entries = _tokens.entries.where((e) => e.value.isNotEmpty).toList();
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.developer_mode, color: cs.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('Register App Check Debug Tokens',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Go to Firebase Console → App Check → Manage debug tokens and add each token below:',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            for (final entry in entries) ...[
+              if (entry != entries.first) const SizedBox(height: 10),
+              Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.value,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: entry.value));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('${entry.key} token copied')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

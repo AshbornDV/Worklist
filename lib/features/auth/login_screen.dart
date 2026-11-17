@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/theme/responsive.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,9 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final cs = Theme.of(context).colorScheme;
-    final wide = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
+      // Keep the focused field visible above the on-screen keyboard.
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -55,11 +57,14 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints:
-                    BoxConstraints(maxWidth: wide ? 430 : double.infinity),
-                child: Card(
+              padding: EdgeInsets.fromLTRB(
+                Responsive.pagePadding(context),
+                16,
+                Responsive.pagePadding(context),
+                16 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Responsive.centeredForm(
+                Card(
                   elevation: 12,
                   child: Padding(
                     padding: const EdgeInsets.all(32),

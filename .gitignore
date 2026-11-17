@@ -49,3 +49,16 @@ app.*.map.json
 
 # Distribution builds
 /dist/
+
+# Repomix generated context
+repomix-output.*
+
+# Local tooling noise (not part of the app)
+graphify-out/cache/
+docs/graphify-out/cache/
+.sage-memory/
+.zcode/plans/
+nuget.exe
+stdout*.txt
+stderr*.txt
+.codex/token-baseline/

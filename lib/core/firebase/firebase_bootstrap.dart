@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in_dartio/google_sign_in_dartio.dart';
 
 import '../../firebase_options.dart';
@@ -20,14 +21,14 @@ Future<void> initializeFirebase() async {
 Future<void> configureFirebaseAuth() async {
   try {
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-  } catch (_) {
-    // Persistence is automatic on mobile/desktop; web may require this call.
+  } catch (e) {
+    debugPrint('[Firebase] setPersistence failed (non-fatal): $e');
   }
 
   try {
     await AppCheckService.instance.setTokenAutoRefreshEnabled(true);
-  } catch (_) {
-    // Auto-refresh is best-effort on all platforms.
+  } catch (e) {
+    debugPrint('[Firebase] setTokenAutoRefreshEnabled failed (non-fatal): $e');
   }
 }
 

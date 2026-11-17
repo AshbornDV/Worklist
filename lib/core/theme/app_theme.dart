@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AppTheme {
   AppTheme._();
@@ -54,6 +54,11 @@ class AppTheme {
           useIndicator: true,
         ),
         dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+        dialogTheme: const DialogThemeData(
+          // Cap dialog width on tablets/desktop so forms and lists don't
+          // stretch edge-to-edge; phones are unaffected (already < 560dp).
+          constraints: BoxConstraints(maxWidth: 560),
+        ),
       );
 
   static ThemeData get darkTheme => ThemeData(
@@ -98,6 +103,11 @@ class AppTheme {
           useIndicator: true,
         ),
         dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+        dialogTheme: const DialogThemeData(
+          // Cap dialog width on tablets/desktop so forms and lists don't
+          // stretch edge-to-edge; phones are unaffected (already < 560dp).
+          constraints: BoxConstraints(maxWidth: 560),
+        ),
       );
 
   // ── Status color helpers ──

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,8 +7,11 @@ import '../../core/models/product_model.dart';
 import '../../core/models/site_model.dart';
 import '../../core/models/worker_model.dart';
 import '../../core/models/construction_payment_model.dart';
+import '../../core/models/site_product_model.dart';
+import '../../core/models/site_service_model.dart';
 import '../../core/providers/site_provider.dart';
 import '../../shared/widgets/shared_widgets.dart';
+import 'product_select_dialog.dart';
 
 class SiteDetailScreen extends StatefulWidget {
   final int siteId;
@@ -41,6 +44,8 @@ class _SiteDetailScreenState extends State<SiteDetailScreen> {
         prov.loadProducts(site.id!);
         prov.loadSiteWorkers(site.id!);
         prov.loadConstructionPayments(site.id!);
+        prov.loadSiteProducts(site.id!);
+        prov.loadSiteServices(site.id!);
       }
     }
   }
@@ -166,14 +171,14 @@ class _SiteDetailScreenState extends State<SiteDetailScreen> {
                               site.workType!.isNotEmpty)
                             InfoRow(
                               label: 'Type of Work',
-                              value: site.workType!,
+                              value: site.workType! + (site.workTypeRate != null ? ' (\u20B9${site.workTypeRate!.toStringAsFixed(0)})' : ''),
                               icon: Icons.home_repair_service_outlined,
                             ),
                           if (site.workArea != null &&
                               site.workArea!.isNotEmpty)
                             InfoRow(
-                              label: 'Area of Work',
-                              value: site.workArea!,
+                              label: 'Work Area',
+                              value: '${site.workArea!}${site.workAreaUnit != null ? ' ${site.workAreaUnit}' : ''}',
                               icon: Icons.square_foot_outlined,
                             ),
                           if (site.rate > 0)
@@ -210,7 +215,15 @@ class _SiteDetailScreenState extends State<SiteDetailScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Products ──
+                  // ── Services ──
+                  _SiteServicesSection(siteId: site.id!),
+                  const SizedBox(height: 20),
+
+                  // ── Products from Inventory ──
+                  _SiteProductsSection(siteId: site.id!),
+                  const SizedBox(height: 20),
+
+                  // ── Site Materials ──
                   _ProductsSection(siteId: site.id!),
                   const SizedBox(height: 20),
 
@@ -316,7 +329,9 @@ class _FinancialCard extends StatelessWidget {
               ),
               const SizedBox(height: 14),
             ],
-            _FRow('Estimated Cost', site.estimatedCost, cs.primary),
+            if (site.finalCost != null)
+              _FRow('Final Cost', site.finalCost!, cs.primary),
+            _FRow(site.finalCost != null ? 'Estimated Cost' : 'Cost', site.estimatedCost, cs.primary.withValues(alpha: site.finalCost != null ? 0.6 : 1)),
             const SizedBox(height: 8),
             _FRow('Total Amount Received', site.advanceReceived,
                 const Color(0xFF2E7D32)),
@@ -751,6 +766,9 @@ class _SiteDetailPanelState extends State<SiteDetailPanel> {
     if (site != null) {
       prov.loadProducts(site.id!);
       prov.loadSiteWorkers(site.id!);
+      prov.loadConstructionPayments(site.id!);
+      prov.loadSiteProducts(site.id!);
+      prov.loadSiteServices(site.id!);
     }
   }
 
@@ -830,14 +848,14 @@ class _SiteDetailPanelState extends State<SiteDetailPanel> {
                             site.workType!.isNotEmpty)
                           InfoRow(
                             label: 'Type of Work',
-                            value: site.workType!,
+                            value: site.workType! + (site.workTypeRate != null ? ' (\u20B9${site.workTypeRate!.toStringAsFixed(0)})' : ''),
                             icon: Icons.home_repair_service_outlined,
                           ),
                         if (site.workArea != null &&
                             site.workArea!.isNotEmpty)
                           InfoRow(
-                            label: 'Area of Work',
-                            value: site.workArea!,
+                            label: 'Work Area',
+                            value: '${site.workArea!}${site.workAreaUnit != null ? ' ${site.workAreaUnit}' : ''}',
                             icon: Icons.square_foot_outlined,
                           ),
                         if (site.rate > 0)
@@ -868,7 +886,15 @@ class _SiteDetailPanelState extends State<SiteDetailPanel> {
                 _FinancialCard(site: site),
                 const SizedBox(height: 20),
 
-                // ── Products ──
+                // ── Services ──
+                _SiteServicesSection(siteId: site.id!),
+                const SizedBox(height: 20),
+
+                // ── Products from Inventory ──
+                _SiteProductsSection(siteId: site.id!),
+                const SizedBox(height: 20),
+
+                // ── Site Materials ──
                 _ProductsSection(siteId: site.id!),
                 const SizedBox(height: 20),
 
@@ -1132,5 +1158,365 @@ class _PaymentTile extends StatelessWidget {
     if (success) {
       onChanged();
     }
+  }
+}
+
+// ─────────────── SITE SERVICES SECTION ───────────────
+
+class _SiteServicesSection extends StatelessWidget {
+  final int siteId;
+  const _SiteServicesSection({required this.siteId});
+
+  @override
+  Widget build(BuildContext context) {
+    final prov = context.watch<SiteProvider>();
+    final services = prov.siteServices;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'Services',
+          subtitle: '${services.length} service(s)',
+          trailing: TextButton.icon(
+            onPressed: () => _showAddService(context),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Add'),
+          ),
+        ),
+        if (prov.siteServicesLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (services.isEmpty)
+          const EmptyState(
+            icon: Icons.miscellaneous_services_outlined,
+            title: 'No services added',
+            subtitle: 'Add services like plastering, painting, etc.',
+          )
+        else
+          ...services.map((s) => _ServiceTile(siteId: siteId, service: s)),
+      ],
+    );
+  }
+
+  Future<void> _showAddService(BuildContext context) async {
+    final prov = context.read<SiteProvider>();
+    final nameCtrl = TextEditingController();
+    final rateCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Service'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Service name *',
+                  prefixIcon: Icon(Icons.miscellaneous_services_outlined),
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Enter service name' : null,
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: rateCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Rate (price) *',
+                  prefixIcon: Icon(Icons.currency_rupee),
+                  hintText: '0',
+                ),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Enter a rate';
+                  final val = double.tryParse(v.trim());
+                  if (val == null || val <= 0) return 'Rate must be greater than 0';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final now = DateTime.now();
+              await prov.addSiteService(SiteService(
+                siteId: siteId,
+                serviceName: nameCtrl.text.trim(),
+                rate: double.parse(rateCtrl.text.trim()),
+                createdAt: now,
+                updatedAt: now,
+              ));
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    nameCtrl.dispose();
+    rateCtrl.dispose();
+  }
+}
+
+class _ServiceTile extends StatelessWidget {
+  final int siteId;
+  final SiteService service;
+  const _ServiceTile({required this.siteId, required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: cs.tertiaryContainer,
+          child: Icon(Icons.miscellaneous_services_outlined,
+              color: cs.tertiary, size: 20),
+        ),
+        title: Text(service.serviceName,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          CurrencyText.format(service.rate),
+          style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (v) {
+            if (v == 'edit') _edit(context);
+            if (v == 'delete') _delete(context);
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+            const PopupMenuItem(value: 'delete', child: Text('Delete')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _edit(BuildContext context) async {
+    final prov = context.read<SiteProvider>();
+    final nameCtrl = TextEditingController(text: service.serviceName);
+    final rateCtrl =
+        TextEditingController(text: service.rate.toStringAsFixed(0));
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Service'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Service name'),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Required' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: rateCtrl,
+                decoration: const InputDecoration(labelText: 'Rate'),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final val = double.tryParse(v);
+                  if (val == null || val <= 0) return 'Invalid rate';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              await prov.updateSiteService(service.copyWith(
+                serviceName: nameCtrl.text.trim(),
+                rate: double.parse(rateCtrl.text.trim()),
+                updatedAt: DateTime.now(),
+              ));
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    nameCtrl.dispose();
+    rateCtrl.dispose();
+  }
+
+  Future<void> _delete(BuildContext context) async {
+    final ok = await showConfirmDialog(
+      context,
+      title: 'Delete Service',
+      content: 'Remove "${service.serviceName}"?',
+      confirmText: 'Delete',
+      destructive: true,
+    );
+    if (ok && context.mounted) {
+      context.read<SiteProvider>().deleteSiteService(service.id!);
+    }
+  }
+}
+
+// ─────────────── SITE PRODUCTS (FROM INVENTORY) SECTION ───────────────
+
+class _SiteProductsSection extends StatelessWidget {
+  final int siteId;
+  const _SiteProductsSection({required this.siteId});
+
+  @override
+  Widget build(BuildContext context) {
+    final prov = context.watch<SiteProvider>();
+    final siteProducts = prov.siteProducts;
+    final cs = Theme.of(context).colorScheme;
+
+    final total = prov.getSiteProductTotal();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'Products from Inventory',
+          subtitle: '${siteProducts.length} product(s) sent',
+          trailing: TextButton.icon(
+            onPressed: () => _showSelectDialog(context),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Send from Store'),
+          ),
+        ),
+        if (prov.siteProductsLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (siteProducts.isEmpty)
+          const EmptyState(
+            icon: Icons.inventory_outlined,
+            title: 'No products sent from store',
+            subtitle: 'Send products from your inventory to this site',
+          )
+        else ...[
+          ...siteProducts.map((sp) => _SiteProductTile(siteId: siteId, siteProduct: sp)),
+          if (total > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, right: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Materials total: ',
+                    style: TextStyle(
+                      color: cs.onSurface.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    CurrencyText.format(total),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: cs.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _showSelectDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (_) => ProductSelectDialog(siteId: siteId),
+    );
+  }
+}
+
+class _SiteProductTile extends StatelessWidget {
+  final int siteId;
+  final SiteProduct siteProduct;
+  const _SiteProductTile({required this.siteId, required this.siteProduct});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: cs.primaryContainer,
+          child: Icon(Icons.inventory_outlined, color: cs.primary, size: 20),
+        ),
+        title: Text(siteProduct.productName ?? 'Product',
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Row(
+          children: [
+            Chip(
+              label: Text(
+                '${siteProduct.quantity.toStringAsFixed(siteProduct.quantity % 1 == 0 ? 0 : 1)} ${siteProduct.productUnit ?? 'unit'}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              CurrencyText.format(siteProduct.productRate ?? 0),
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: Icon(Icons.delete_outline, color: cs.error, size: 20),
+          onPressed: () async {
+            final ok = await showConfirmDialog(
+              context,
+              title: 'Remove Product',
+              content: 'Remove "${siteProduct.productName ?? 'this product'}" from site?',
+              confirmText: 'Remove',
+              destructive: true,
+            );
+            if (ok && context.mounted) {
+              context.read<SiteProvider>().deleteSiteProduct(siteProduct.id!);
+            }
+          },
+        ),
+      ),
+    );
   }
 }

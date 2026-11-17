@@ -9,10 +9,18 @@ import '../constants/app_constants.dart';
 import '../models/construction_payment_model.dart';
 import '../models/advance_payment_model.dart';
 import '../models/attendance_model.dart';
+import '../../features/documents/models/document_model.dart';
 import '../models/product_model.dart';
 import '../models/site_model.dart';
+import '../models/site_product_model.dart';
+import '../models/site_service_model.dart';
+import '../models/store_product_model.dart';
 import '../models/user_model.dart';
+import '../models/user_service_model.dart';
+import '../models/payroll_model.dart';
+import '../models/worker_document_model.dart';
 import '../models/worker_model.dart';
+import '../models/worker_performance_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -24,6 +32,26 @@ class DatabaseHelper {
   int? _activeUserId;
 
   int? get activeUserId => _activeUserId;
+
+  /// Public, throwing variant of [_requireUserId] for callers outside the DB
+  /// layer (e.g. the Documents provider) that need the signed-in user id.
+  int requireUserId() => _requireUserId();
+
+  // ── Cloud-sync write hook ────────────────────────────────────────────────
+  // Fired after any local user-data mutation so the cloud-sync layer can push
+  // the change. Implemented as a callback (not a direct Firebase import) to
+  // respect the architecture rule that the database layer must not depend on
+  // Firebase. Wired up in main() once Firebase is initialized.
+  static void Function()? onUserMutate;
+
+  // Suppressed while importing cloud data (replaceUserData) so the import
+  // itself doesn't trigger a re-upload loop.
+  bool _suppressMutateNotify = false;
+
+  void _notifyUserMutated() {
+    if (_suppressMutateNotify) return;
+    onUserMutate?.call();
+  }
 
   Future<Database> get database async {
     if (_db != null) return _db!;
@@ -50,7 +78,7 @@ class DatabaseHelper {
     final dbPath = p.join(await getDatabasesPath(), 'worklist.db');
     return openDatabase(
       dbPath,
-      version: 8,
+      version: 20,
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
@@ -60,7 +88,52 @@ class DatabaseHelper {
   Future<void> _onCreate(Database db, int version) async {
     await _createUsersTable(db);
     await _createBusinessTables(db);
+    await _createDocumentsTable(db);
     await _createIndexes(db);
+  }
+
+  /// Phase 8 — Document Management. Unified `documents` table covering all six
+  /// entity types (worker/site/product/payroll/payment/service) via
+  /// (entity_type, entity_id). Pure additive schema, idempotent (IF NOT EXISTS),
+  /// so it is safe to run from both [_onCreate] and [onUpgrade].
+  Future<void> _createDocumentsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT NOT NULL UNIQUE,
+        user_id INTEGER NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id INTEGER,
+        category TEXT,
+        file_name TEXT NOT NULL,
+        mime_type TEXT,
+        ext TEXT,
+        size_bytes INTEGER NOT NULL,
+        local_path TEXT NOT NULL,
+        storage_path TEXT,
+        thumb_path TEXT,
+        hash TEXT,
+        version INTEGER NOT NULL DEFAULT 1,
+        replaces_uuid TEXT,
+        sync_status TEXT NOT NULL DEFAULT 'pending',
+        is_deleted INTEGER NOT NULL DEFAULT 0,
+        deleted_at TEXT,
+        width INTEGER,
+        height INTEGER,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(user_id, entity_type, entity_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_documents_uuid ON documents(uuid)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_documents_sync ON documents(user_id, sync_status)',
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -149,6 +222,317 @@ class DatabaseHelper {
         await _addColumnIfMissing(db, 'sites', col.$1, col.$2);
       }
     }
+    if (oldVersion < 9) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS store_products (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          rate REAL NOT NULL DEFAULT 0.0,
+          stock REAL NOT NULL DEFAULT 0.0,
+          unit TEXT NOT NULL DEFAULT 'unit',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS site_products (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          site_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity REAL NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (site_id) REFERENCES sites (id) ON DELETE CASCADE,
+          FOREIGN KEY (product_id) REFERENCES store_products (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS site_services (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          site_id INTEGER NOT NULL,
+          service_name TEXT NOT NULL,
+          rate REAL NOT NULL DEFAULT 0.0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (site_id) REFERENCES sites (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_store_products_user ON store_products(user_id, name)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_site_products_site ON site_products(user_id, site_id)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_site_services_site ON site_services(user_id, site_id)',
+      );
+    }
+    if (oldVersion < 10) {
+      // Add size column to store_products
+      await _addColumnIfMissing(
+          db, 'store_products', 'size', 'REAL NOT NULL DEFAULT 1.0');
+      // Remove duplicates before adding unique index
+      await db.execute('''
+        DELETE FROM store_products WHERE id NOT IN (
+          SELECT MIN(id) FROM store_products GROUP BY user_id, name
+        )
+      ''');
+      // Replace old index with unique constraint index
+      await db.execute('DROP INDEX IF EXISTS idx_store_products_user');
+      await db.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_store_products_unique ON store_products(user_id, name)',
+      );
+      // Add work_area_unit to sites
+      await _addColumnIfMissing(db, 'sites', 'work_area_unit', 'TEXT');
+      // Create user_services table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_services (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          rate REAL NOT NULL DEFAULT 0.0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_user_services_user ON user_services(user_id, name)',
+      );
+    }
+    if (oldVersion < 11) {
+      await _addColumnIfMissing(db, 'sites', 'final_cost', 'REAL');
+      await _addColumnIfMissing(db, 'sites', 'work_type_rate', 'REAL');
+    }
+    if (oldVersion < 12) {
+      // Add new worker profile fields
+      await _addColumnIfMissing(db, 'workers', 'photo_path', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'address', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'skills', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'join_date', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'notes', 'TEXT');
+
+      // Create worker_documents table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS worker_documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          worker_id INTEGER NOT NULL,
+          document_type TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          uploaded_at TEXT NOT NULL,
+          file_name TEXT,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_worker_documents_worker ON worker_documents(user_id, worker_id)',
+      );
+
+      // Create worker_performance table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS worker_performance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          worker_id INTEGER NOT NULL,
+          month TEXT NOT NULL,
+          attendance_percentage REAL NOT NULL DEFAULT 0.0,
+          late_arrivals INTEGER NOT NULL DEFAULT 0,
+          completed_work_days INTEGER NOT NULL DEFAULT 0,
+          rating REAL NOT NULL DEFAULT 0.0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE,
+          UNIQUE (user_id, worker_id, month)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_worker_performance_worker ON worker_performance(user_id, worker_id, month)',
+      );
+    }
+    if (oldVersion < 13) {
+      // Add new site detail fields
+      await _addColumnIfMissing(db, 'sites', 'budget', 'REAL');
+      await _addColumnIfMissing(db, 'sites', 'manager', 'TEXT');
+      await _addColumnIfMissing(db, 'sites', 'start_date', 'TEXT');
+      await _addColumnIfMissing(db, 'sites', 'end_date', 'TEXT');
+    }
+    if (oldVersion < 14) {
+      // Product categories + barcode + stock thresholds.
+      await _addColumnIfMissing(db, 'store_products', 'category', 'TEXT');
+      await _addColumnIfMissing(db, 'store_products', 'subcategory', 'TEXT');
+      await _addColumnIfMissing(db, 'store_products', 'color_label', 'TEXT');
+      await _addColumnIfMissing(db, 'store_products', 'barcode', 'TEXT');
+      await _addColumnIfMissing(
+        db,
+        'store_products',
+        'low_stock_threshold',
+        'REAL NOT NULL DEFAULT 10.0',
+      );
+      await _addColumnIfMissing(
+        db,
+        'store_products',
+        'critical_stock_threshold',
+        'REAL NOT NULL DEFAULT 2.0',
+      );
+
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_store_products_barcode ON store_products(user_id, barcode)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_store_products_category ON store_products(user_id, category, subcategory)',
+      );
+    }
+    if (oldVersion < 15) {
+      // Add overtime_rate to workers
+      await _addColumnIfMissing(
+          db, 'workers', 'overtime_rate', 'REAL NOT NULL DEFAULT 0.0');
+      // Create payroll table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS payroll (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          worker_id INTEGER NOT NULL,
+          month TEXT NOT NULL,
+          full_days INTEGER NOT NULL DEFAULT 0,
+          half_days INTEGER NOT NULL DEFAULT 0,
+          daily_rate REAL NOT NULL DEFAULT 0.0,
+          overtime_hours REAL NOT NULL DEFAULT 0.0,
+          overtime_rate REAL NOT NULL DEFAULT 0.0,
+          advance_amount REAL NOT NULL DEFAULT 0.0,
+          bonus REAL NOT NULL DEFAULT 0.0,
+          deductions REAL NOT NULL DEFAULT 0.0,
+          net_salary REAL NOT NULL DEFAULT 0.0,
+          status TEXT NOT NULL DEFAULT 'draft',
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE,
+          UNIQUE (user_id, worker_id, month)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_payroll_worker ON payroll(user_id, worker_id, month)',
+      );
+    }
+    if (oldVersion < 16) {
+      // Heal databases created by onCreate before these site columns were
+      // added to the CREATE TABLE statement (previously only added via the
+      // v10/v11 upgrade paths, which fresh installs at v15 never ran).
+      await _addColumnIfMissing(db, 'sites', 'work_area_unit', 'TEXT');
+      await _addColumnIfMissing(db, 'sites', 'work_type_rate', 'REAL');
+      await _addColumnIfMissing(db, 'sites', 'final_cost', 'REAL');
+    }
+    if (oldVersion < 17) {
+      // Heal databases created by an earlier v16 build whose onCreate path
+      // did not yet include worker_documents / worker_performance / payroll.
+      // Such databases already sit at version 16, so onUpgrade never ran again
+      // and these tables were never created — causing "no such table" at
+      // runtime. CREATE TABLE IF NOT EXISTS is idempotent and safe on live
+      // user databases: it only adds missing tables, never drops or alters
+      // existing data.
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS worker_documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          worker_id INTEGER NOT NULL,
+          document_type TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          uploaded_at TEXT NOT NULL,
+          file_name TEXT,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_worker_documents_worker ON worker_documents(user_id, worker_id)',
+      );
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS worker_performance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          worker_id INTEGER NOT NULL,
+          month TEXT NOT NULL,
+          attendance_percentage REAL NOT NULL DEFAULT 0.0,
+          late_arrivals INTEGER NOT NULL DEFAULT 0,
+          completed_work_days INTEGER NOT NULL DEFAULT 0,
+          rating REAL NOT NULL DEFAULT 0.0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE,
+          UNIQUE (user_id, worker_id, month)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_worker_performance_worker ON worker_performance(user_id, worker_id, month)',
+      );
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS payroll (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          worker_id INTEGER NOT NULL,
+          month TEXT NOT NULL,
+          full_days INTEGER NOT NULL DEFAULT 0,
+          half_days INTEGER NOT NULL DEFAULT 0,
+          daily_rate REAL NOT NULL DEFAULT 0.0,
+          overtime_hours REAL NOT NULL DEFAULT 0.0,
+          overtime_rate REAL NOT NULL DEFAULT 0.0,
+          advance_amount REAL NOT NULL DEFAULT 0.0,
+          bonus REAL NOT NULL DEFAULT 0.0,
+          deductions REAL NOT NULL DEFAULT 0.0,
+          net_salary REAL NOT NULL DEFAULT 0.0,
+          status TEXT NOT NULL DEFAULT 'draft',
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE,
+          UNIQUE (user_id, worker_id, month)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_payroll_worker ON payroll(user_id, worker_id, month)',
+      );
+    }
+    if (oldVersion < 18) {
+      // Heal databases created at v17 (or earlier) whose onCreate path never
+      // added the worker profile columns (photo_path, address, skills,
+      // join_date, notes). Fresh installs at v17 hit this gap and INSERTs
+      // referencing those columns failed with "no such column". The upgrade
+      // path added them, but only for DBs that upgraded from <12 — a v17 DB
+      // created directly skipped that branch. ALTER ... ADD COLUMN is
+      // idempotent via _addColumnIfMissing, so re-running on an already-healed
+      // DB is a safe no-op.
+      await _addColumnIfMissing(db, 'workers', 'photo_path', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'address', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'skills', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'join_date', 'TEXT');
+      await _addColumnIfMissing(db, 'workers', 'notes', 'TEXT');
+    }
+    if (oldVersion < 19) {
+      // Phase 8 — Document Management (see [_createDocumentsTable] for DDL).
+      // Additive only: CREATE TABLE / INDEX IF NOT EXISTS. Delegated to the
+      // shared helper so fresh installs and upgrades stay identical.
+      await _createDocumentsTable(db);
+    }
+    if (oldVersion < 20) {
+      // Phase 14 — Windows cloud-restore fix. Fresh installs (created at v19
+      // via [_onCreate]) had the `documents` table via the helper above, but
+      // some v19 databases created before the helper existed can be missing it
+      // when a cloud "Restore from cloud" runs replaceUserData (which queries
+      // `documents`). Re-create it idempotently so the download never throws
+      // `no such table: documents`. Pure additive migration.
+      await _createDocumentsTable(db);
+    }
   }
 
   Future<void> _addColumnIfMissing(
@@ -177,6 +561,10 @@ class DatabaseHelper {
   }
 
   Future<void> _dropBusinessTables(Database db) async {
+    await db.execute('DROP TABLE IF EXISTS site_services');
+    await db.execute('DROP TABLE IF EXISTS site_products');
+    await db.execute('DROP TABLE IF EXISTS user_services');
+    await db.execute('DROP TABLE IF EXISTS store_products');
     await db.execute('DROP TABLE IF EXISTS site_construction_payments');
     await db.execute('DROP TABLE IF EXISTS advance_payments');
     await db.execute('DROP TABLE IF EXISTS attendance');
@@ -198,6 +586,9 @@ class DatabaseHelper {
         longitude REAL,
         work_type TEXT,
         work_area TEXT,
+        work_area_unit TEXT,
+        work_type_rate REAL,
+        final_cost REAL,
         rate REAL DEFAULT 0.0,
         status TEXT DEFAULT 'active',
         estimated_cost REAL DEFAULT 0.0,
@@ -220,7 +611,13 @@ class DatabaseHelper {
         phone TEXT DEFAULT '',
         trade TEXT NOT NULL,
         daily_rate REAL NOT NULL,
+        overtime_rate REAL NOT NULL DEFAULT 0.0,
         status TEXT DEFAULT 'active',
+        photo_path TEXT,
+        address TEXT,
+        skills TEXT,
+        join_date TEXT,
+        notes TEXT,
         created_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
@@ -301,6 +698,133 @@ class DatabaseHelper {
         FOREIGN KEY (site_id) REFERENCES sites (id) ON DELETE CASCADE
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS store_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT,
+        subcategory TEXT,
+        color_label TEXT,
+        barcode TEXT,
+        rate REAL NOT NULL DEFAULT 0.0,
+        size REAL NOT NULL DEFAULT 1.0,
+        unit TEXT NOT NULL DEFAULT 'piece',
+        stock REAL NOT NULL DEFAULT 0.0,
+        low_stock_threshold REAL NOT NULL DEFAULT 10.0,
+        critical_stock_threshold REAL NOT NULL DEFAULT 2.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        UNIQUE (user_id, name)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS site_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        site_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        quantity REAL NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (site_id) REFERENCES sites (id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES store_products (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS site_services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        site_id INTEGER NOT NULL,
+        service_name TEXT NOT NULL,
+        rate REAL NOT NULL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (site_id) REFERENCES sites (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS user_services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        rate REAL NOT NULL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS worker_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        worker_id INTEGER NOT NULL,
+        document_type TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        uploaded_at TEXT NOT NULL,
+        file_name TEXT,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_worker_documents_worker ON worker_documents(user_id, worker_id)',
+    );
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS worker_performance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        worker_id INTEGER NOT NULL,
+        month TEXT NOT NULL,
+        attendance_percentage REAL NOT NULL DEFAULT 0.0,
+        late_arrivals INTEGER NOT NULL DEFAULT 0,
+        completed_work_days INTEGER NOT NULL DEFAULT 0,
+        rating REAL NOT NULL DEFAULT 0.0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE,
+        UNIQUE (user_id, worker_id, month)
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_worker_performance_worker ON worker_performance(user_id, worker_id, month)',
+    );
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS payroll (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        worker_id INTEGER NOT NULL,
+        month TEXT NOT NULL,
+        full_days INTEGER NOT NULL DEFAULT 0,
+        half_days INTEGER NOT NULL DEFAULT 0,
+        daily_rate REAL NOT NULL DEFAULT 0.0,
+        overtime_hours REAL NOT NULL DEFAULT 0.0,
+        overtime_rate REAL NOT NULL DEFAULT 0.0,
+        advance_amount REAL NOT NULL DEFAULT 0.0,
+        bonus REAL NOT NULL DEFAULT 0.0,
+        deductions REAL NOT NULL DEFAULT 0.0,
+        net_salary REAL NOT NULL DEFAULT 0.0,
+        status TEXT NOT NULL DEFAULT 'draft',
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (worker_id) REFERENCES workers (id) ON DELETE CASCADE,
+        UNIQUE (user_id, worker_id, month)
+      )
+    ''');
   }
 
   /// Creates performance indexes for all high-frequency query patterns.
@@ -330,6 +854,22 @@ class DatabaseHelper {
         'CREATE INDEX IF NOT EXISTS idx_adv_user_status ON advance_payments(user_id, status)');
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_adv_worker ON advance_payments(user_id, worker_id, approved_date)');
+    await db.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_store_products_unique ON store_products(user_id, name)');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_store_products_barcode ON store_products(user_id, barcode)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_store_products_category ON store_products(user_id, category, subcategory)',
+    );
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_site_products_site ON site_products(user_id, site_id)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_site_services_site ON site_services(user_id, site_id)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_user_services_user ON user_services(user_id, name)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_payroll_worker ON payroll(user_id, worker_id, month)');
   }
 
   String hashPassword(String password) =>
@@ -480,12 +1020,14 @@ class DatabaseHelper {
   Future<int> insertSite(SiteModel site) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
     return db.insert('sites', _owned(site.toMap(), userId));
   }
 
   Future<int> updateSite(SiteModel site) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
     return db.update(
       'sites',
       _owned(site.toMap(), userId),
@@ -497,6 +1039,7 @@ class DatabaseHelper {
   Future<int> deleteSite(int id) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
     return db.delete(
       'sites',
       where: 'id = ? AND user_id = ?',
@@ -516,9 +1059,25 @@ class DatabaseHelper {
     return rows.map(ProductModel.fromMap).toList();
   }
 
+  /// Read-only: all products across the current user's sites. Used by the
+  /// Calendar to surface material delivery reminders. No schema change.
+  Future<List<ProductModel>> getAllProducts() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'products',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'delivery_date DESC',
+    );
+    return rows.map(ProductModel.fromMap).toList();
+  }
+
   Future<int> insertProduct(ProductModel product) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
     return db.insert('products', _owned(product.toMap(), userId));
   }
 
@@ -536,11 +1095,341 @@ class DatabaseHelper {
   Future<int> deleteProduct(int id) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
     return db.delete(
       'products',
       where: 'id = ? AND user_id = ?',
       whereArgs: [id, userId],
     );
+  }
+
+  // ─────────────── STORE PRODUCTS (global inventory) ───────────────
+
+  Future<List<StoreProduct>> getAllStoreProducts() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'store_products',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'name ASC',
+    );
+    return rows.map(StoreProduct.fromMap).toList();
+  }
+
+  Future<StoreProduct?> getStoreProductById(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'store_products',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+    return rows.isEmpty ? null : StoreProduct.fromMap(rows.first);
+  }
+
+  Future<StoreProduct?> getStoreProductByBarcode(String barcode) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final cleaned = barcode.trim();
+    if (cleaned.isEmpty) return null;
+    final rows = await db.query(
+      'store_products',
+      where: 'barcode = ? AND user_id = ?',
+      whereArgs: [cleaned, userId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : StoreProduct.fromMap(rows.first);
+  }
+
+  Future<int> insertStoreProduct(StoreProduct product) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    return db.insert('store_products', _owned(product.toMap(), userId));
+  }
+
+  Future<int> updateStoreProduct(StoreProduct product) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.update(
+      'store_products',
+      _owned(product.toMap(), userId),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [product.id, userId],
+    );
+  }
+
+  Future<int> deleteStoreProduct(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'store_products',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  /// Deducts [quantity] from the store product's stock.
+  /// Throws if the stock would go negative.
+  Future<void> deductStoreStock(int productId, double quantity) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final affected = await db.rawUpdate('''
+      UPDATE store_products
+      SET stock = stock - ?, updated_at = ?
+      WHERE id = ? AND user_id = ? AND stock >= ?
+    ''', [
+      quantity,
+      DateTime.now().toIso8601String(),
+      productId,
+      userId,
+      quantity
+    ]);
+    if (affected == 0) {
+      throw Exception('Insufficient stock or product not found.');
+    }
+  }
+
+  /// Restores [quantity] back to the store product's stock.
+  Future<void> restoreStoreStock(int productId, double quantity) async {
+    final db = await database;
+    final userId = _requireUserId();
+    await db.rawUpdate('''
+      UPDATE store_products
+      SET stock = stock + ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    ''', [quantity, DateTime.now().toIso8601String(), productId, userId]);
+  }
+
+  // ─────────────── SITE PRODUCTS (products sent to a site) ───────────────
+
+  Future<List<SiteProduct>> getSiteProducts(int siteId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.rawQuery('''
+      SELECT sp.*, p.name AS product_name, p.rate AS product_rate, p.unit AS product_unit
+      FROM site_products sp
+      INNER JOIN store_products p ON sp.product_id = p.id AND p.user_id = sp.user_id
+      WHERE sp.site_id = ? AND sp.user_id = ?
+      ORDER BY sp.created_at DESC
+    ''', [siteId, userId]);
+    return rows.map(SiteProduct.fromMap).toList();
+  }
+
+  /// Sends a product from store inventory to a site in one transaction.
+  /// Deducts store stock and creates a site_product record.
+  Future<SiteProduct> sendProductToSite(
+      int siteId, int productId, double quantity) async {
+    final db = await database;
+    final userId = _requireUserId();
+
+    return await db.transaction((txn) async {
+      final affected = await txn.rawUpdate('''
+        UPDATE store_products
+        SET stock = stock - ?, updated_at = ?
+        WHERE id = ? AND user_id = ? AND stock >= ?
+      ''', [
+        quantity,
+        DateTime.now().toIso8601String(),
+        productId,
+        userId,
+        quantity
+      ]);
+      if (affected == 0) {
+        throw Exception(
+            'Insufficient stock. Cannot send more than available inventory.');
+      }
+
+      final now = DateTime.now();
+      final id = await txn.insert('site_products', {
+        'user_id': userId,
+        'site_id': siteId,
+        'product_id': productId,
+        'quantity': quantity,
+        'created_at': now.toIso8601String(),
+      });
+
+      return SiteProduct(
+        id: id,
+        siteId: siteId,
+        productId: productId,
+        quantity: quantity,
+        createdAt: now,
+      );
+    });
+  }
+
+  Future<int> deleteSiteProduct(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.delete(
+      'site_products',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  // ─────────────── SITE SERVICES ───────────────
+
+  Future<List<SiteService>> getSiteServices(int siteId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'site_services',
+      where: 'site_id = ? AND user_id = ?',
+      whereArgs: [siteId, userId],
+      orderBy: 'created_at ASC',
+    );
+    return rows.map(SiteService.fromMap).toList();
+  }
+
+  Future<int> insertSiteService(SiteService service) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    return db.insert('site_services', _owned(service.toMap(), userId));
+  }
+
+  Future<int> updateSiteService(SiteService service) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.update(
+      'site_services',
+      _owned(service.toMap(), userId),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [service.id, userId],
+    );
+  }
+
+  Future<int> deleteSiteService(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'site_services',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  // ─────────────── USER SERVICES (global service catalog) ───────────────
+
+  Future<List<UserService>> getAllUserServices() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'user_services',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'name ASC',
+    );
+    return rows.map(UserService.fromMap).toList();
+  }
+
+  Future<UserService?> getUserServiceById(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'user_services',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+    return rows.isEmpty ? null : UserService.fromMap(rows.first);
+  }
+
+  Future<int> insertUserService(UserService service) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    return db.insert('user_services', _owned(service.toMap(), userId));
+  }
+
+  Future<int> updateUserService(UserService service) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.update(
+      'user_services',
+      _owned(service.toMap(), userId),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [service.id, userId],
+    );
+  }
+
+  Future<int> deleteUserService(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'user_services',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  // ─────────────── STOCK QUERIES ───────────────
+
+  /// Returns total quantity of a product sent to all sites
+  Future<double> getTotalSentToSites(int productId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.rawQuery(
+      'SELECT COALESCE(SUM(quantity), 0) as total FROM site_products WHERE product_id = ? AND user_id = ?',
+      [productId, userId],
+    );
+    return (rows.first['total'] as num).toDouble();
+  }
+
+  /// Adds stock to a store product
+  Future<void> addStock(int productId, double quantity) async {
+    final db = await database;
+    final userId = _requireUserId();
+    await db.rawUpdate('''
+      UPDATE store_products
+      SET stock = stock + ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    ''', [quantity, DateTime.now().toIso8601String(), productId, userId]);
+  }
+
+  /// Sets stock to a specific value
+  Future<void> setStock(int productId, double quantity) async {
+    final db = await database;
+    final userId = _requireUserId();
+    await db.rawUpdate('''
+      UPDATE store_products
+      SET stock = ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    ''', [quantity, DateTime.now().toIso8601String(), productId, userId]);
+  }
+
+  /// Returns products that are out/critical/low stock, ordered by severity.
+  Future<List<StoreProduct>> getStockAlertProducts({int limit = 5}) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.rawQuery('''
+      SELECT *
+      FROM store_products
+      WHERE user_id = ?
+        AND (
+          stock <= 0
+          OR (stock > 0 AND stock <= COALESCE(low_stock_threshold, 10.0))
+        )
+      ORDER BY
+        CASE
+          WHEN stock <= 0 THEN 0
+          WHEN stock <= COALESCE(critical_stock_threshold, 2.0) THEN 1
+          ELSE 2
+        END ASC,
+        stock ASC,
+        name ASC
+      LIMIT ?
+    ''', [userId, limit]);
+    return rows.map(StoreProduct.fromMap).toList();
   }
 
   Future<List<WorkerModel>> getAllWorkers() async {
@@ -596,6 +1485,9 @@ class DatabaseHelper {
   Future<int> insertWorker(WorkerModel worker) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    _notifyUserMutated();
     return db.insert('workers', _owned(worker.toMap(), userId));
   }
 
@@ -615,6 +1507,348 @@ class DatabaseHelper {
     final userId = _requireUserId();
     return db.delete(
       'workers',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  // ─────────────── WORKER DOCUMENTS ───────────────
+
+  Future<List<WorkerDocument>> getWorkerDocuments(int workerId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'worker_documents',
+      where: 'worker_id = ? AND user_id = ?',
+      whereArgs: [workerId, userId],
+      orderBy: 'uploaded_at DESC',
+    );
+    return rows.map(WorkerDocument.fromMap).toList();
+  }
+
+  Future<WorkerDocument?> getWorkerDocumentByType(
+    int workerId,
+    String documentType,
+  ) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'worker_documents',
+      where: 'worker_id = ? AND document_type = ? AND user_id = ?',
+      whereArgs: [workerId, documentType, userId],
+    );
+    return rows.isEmpty ? null : WorkerDocument.fromMap(rows.first);
+  }
+
+  Future<int> insertWorkerDocument(WorkerDocument document) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    return db.insert('worker_documents', _owned(document.toMap(), userId));
+  }
+
+  // ─────────────── DOCUMENTS (unified, v19) ───────────────
+
+  Future<int> insertDocument(DocumentModel doc) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.insert('documents', _owned(doc.toMap(), userId));
+  }
+
+  Future<int> updateDocument(DocumentModel doc) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.update(
+      'documents',
+      _owned(doc.toMap(), userId),
+      where: 'uuid = ? AND user_id = ?',
+      whereArgs: [doc.uuid, userId],
+    );
+  }
+
+  /// Soft delete: never removes the row (keeps file + history recoverable).
+  Future<int> softDeleteDocument(String uuid) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.update(
+      'documents',
+      {
+        'is_deleted': 1,
+        'deleted_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'uuid = ? AND user_id = ?',
+      whereArgs: [uuid, userId],
+    );
+  }
+
+  /// Restore a soft-deleted document.
+  Future<int> restoreDocument(String uuid) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.update(
+      'documents',
+      {
+        'is_deleted': 0,
+        'deleted_at': null,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'uuid = ? AND user_id = ?',
+      whereArgs: [uuid, userId],
+    );
+  }
+
+  /// Permanent delete (used only from the Trash after explicit purge).
+  Future<int> hardDeleteDocument(String uuid) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.delete(
+      'documents',
+      where: 'uuid = ? AND user_id = ?',
+      whereArgs: [uuid, userId],
+    );
+  }
+
+  Future<DocumentModel?> getDocumentByUuid(String uuid) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'documents',
+      where: 'uuid = ? AND user_id = ?',
+      whereArgs: [uuid, userId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : DocumentModel.fromMap(rows.first);
+  }
+
+  /// All non-deleted documents (optionally scoped to an entity).
+  Future<List<DocumentModel>> getDocuments({
+    DocumentEntityType? entityType,
+    int? entityId,
+    bool includeDeleted = false,
+  }) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final where = <String>['user_id = ?'];
+    final args = <Object?>[userId];
+    if (!includeDeleted) where.add('is_deleted = 0');
+    if (entityType != null) {
+      where.add('entity_type = ?');
+      args.add(entityType.apiValue);
+    }
+    if (entityId != null) {
+      where.add('entity_id = ?');
+      args.add(entityId);
+    }
+    final rows = await db.query(
+      'documents',
+      where: where.join(' AND '),
+      whereArgs: args,
+      orderBy: 'updated_at DESC',
+    );
+    return rows.map(DocumentModel.fromMap).toList();
+  }
+
+  Future<List<DocumentModel>> searchDocuments(String query) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final q = '%${query.toLowerCase()}%';
+    final rows = await db.query(
+      'documents',
+      where: 'user_id = ? AND is_deleted = 0 AND '
+          '(LOWER(file_name) LIKE ? OR LOWER(category) LIKE ? OR uuid LIKE ?)',
+      whereArgs: [userId, q, q, q],
+      orderBy: 'updated_at DESC',
+    );
+    return rows.map(DocumentModel.fromMap).toList();
+  }
+
+  /// All documents pending/failed upload (offline queue + retry).
+  Future<List<DocumentModel>> getDocumentsNeedingSync() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'documents',
+      where: 'user_id = ? AND sync_status IN (?, ?) AND is_deleted = 0',
+      whereArgs: [userId, 'pending', 'failed'],
+      orderBy: 'updated_at ASC',
+    );
+    return rows.map(DocumentModel.fromMap).toList();
+  }
+
+  Future<int> deleteWorkerDocument(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'worker_documents',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  Future<int> deleteWorkerDocumentsByWorker(int workerId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'worker_documents',
+      where: 'worker_id = ? AND user_id = ?',
+      whereArgs: [workerId, userId],
+    );
+  }
+
+  // ─────────────── WORKER PERFORMANCE ───────────────
+
+  Future<List<WorkerPerformance>> getWorkerPerformance(int workerId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final rows = await db.query(
+      'worker_performance',
+      where: 'worker_id = ? AND user_id = ?',
+      whereArgs: [workerId, userId],
+      orderBy: 'month DESC',
+    );
+    return rows.map(WorkerPerformance.fromMap).toList();
+  }
+
+  Future<WorkerPerformance?> getWorkerPerformanceForMonth(
+    int workerId,
+    DateTime month,
+  ) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final monthStr =
+        '${month.year}-${month.month.toString().padLeft(2, '0')}-01';
+    final rows = await db.query(
+      'worker_performance',
+      where: 'worker_id = ? AND month = ? AND user_id = ?',
+      whereArgs: [workerId, monthStr, userId],
+    );
+    return rows.isEmpty ? null : WorkerPerformance.fromMap(rows.first);
+  }
+
+  Future<int> insertWorkerPerformance(WorkerPerformance performance) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    return db.insert(
+      'worker_performance',
+      _owned(performance.toMap(), userId),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> updateWorkerPerformance(WorkerPerformance performance) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    return db.update(
+      'worker_performance',
+      _owned(performance.toMap(), userId),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [performance.id, userId],
+    );
+  }
+
+  Future<int> deleteWorkerPerformance(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'worker_performance',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  Future<int> deleteWorkerPerformanceByWorker(int workerId) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'worker_performance',
+      where: 'worker_id = ? AND user_id = ?',
+      whereArgs: [workerId, userId],
+    );
+  }
+
+  // ─────────────── PAYROLL ───────────────
+
+  Future<List<PayrollModel>> getPayrollForMonth(DateTime month) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final monthStr =
+        '${month.year}-${month.month.toString().padLeft(2, '0')}-01';
+    final rows = await db.rawQuery('''
+      SELECT p.*, w.name AS worker_name, w.trade AS trade
+      FROM payroll p
+      INNER JOIN workers w ON p.worker_id = w.id AND w.user_id = p.user_id
+      WHERE p.month = ? AND p.user_id = ?
+      ORDER BY w.name ASC
+    ''', [monthStr, userId]);
+    return rows.map(PayrollModel.fromMap).toList();
+  }
+
+  Future<PayrollModel?> getPayroll(int workerId, DateTime month) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final monthStr =
+        '${month.year}-${month.month.toString().padLeft(2, '0')}-01';
+    final rows = await db.rawQuery('''
+      SELECT p.*, w.name AS worker_name, w.trade AS trade
+      FROM payroll p
+      INNER JOIN workers w ON p.worker_id = w.id AND w.user_id = p.user_id
+      WHERE p.worker_id = ? AND p.month = ? AND p.user_id = ?
+    ''', [workerId, monthStr, userId]);
+    return rows.isEmpty ? null : PayrollModel.fromMap(rows.first);
+  }
+
+  Future<int> insertPayroll(PayrollModel payroll) async {
+    final db = await database;
+    final userId = _requireUserId();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    _notifyUserMutated();
+    return db.insert(
+      'payroll',
+      _owned(payroll.toMap(), userId),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> updatePayroll(PayrollModel payroll) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.update(
+      'payroll',
+      _owned(payroll.toMap(), userId),
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [payroll.id, userId],
+    );
+  }
+
+  Future<int> deletePayroll(int id) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.delete(
+      'payroll',
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+
+  Future<int> setPayrollStatus(int id, String status) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.update(
+      'payroll',
+      {'status': status, 'updated_at': DateTime.now().toIso8601String()},
       where: 'id = ? AND user_id = ?',
       whereArgs: [id, userId],
     );
@@ -691,6 +1925,24 @@ class DatabaseHelper {
       whereArgs: [workerId, date, userId],
     );
     return rows.isEmpty ? null : AttendanceModel.fromMap(rows.first);
+  }
+
+  /// Read-only: all attendance rows (with worker name) within an inclusive date
+  /// range, for the current user. Used by the Calendar to render attendance
+  /// events on their real days. No schema change.
+  Future<List<Map<String, dynamic>>> getAttendanceInRange(
+    String start,
+    String end,
+  ) async {
+    final db = await database;
+    final userId = _requireUserId();
+    return db.rawQuery('''
+      SELECT a.*, w.name AS worker_name
+      FROM attendance a
+      LEFT JOIN workers w ON a.worker_id = w.id AND w.user_id = a.user_id
+      WHERE a.date >= ? AND a.date <= ? AND a.user_id = ?
+      ORDER BY a.date ASC
+    ''', [start, end, userId]);
   }
 
   Future<List<Map<String, dynamic>>> getSiteAttendanceForDate(
@@ -775,6 +2027,7 @@ class DatabaseHelper {
   Future<int> insertAdvance(AdvancePaymentModel advance) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
     return db.insert('advance_payments', _owned(advance.toMap(), userId));
   }
 
@@ -843,6 +2096,7 @@ class DatabaseHelper {
       ConstructionPaymentModel payment) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
 
     return await db.transaction((txn) async {
       final id = await txn.insert(
@@ -864,9 +2118,11 @@ class DatabaseHelper {
     });
   }
 
-  Future<int> deleteConstructionPayment(int paymentId, int siteId, double amount) async {
+  Future<int> deleteConstructionPayment(
+      int paymentId, int siteId, double amount) async {
     final db = await database;
     final userId = _requireUserId();
+    _notifyUserMutated();
 
     return await db.transaction((txn) async {
       final count = await txn.delete(
@@ -895,6 +2151,7 @@ class DatabaseHelper {
     final db = await database;
     final userId = _requireUserId();
     final diff = payment.amount - oldAmount;
+    _notifyUserMutated();
 
     return await db.transaction((txn) async {
       final count = await txn.update(
@@ -931,11 +2188,11 @@ class DatabaseHelper {
     });
   }
 
-  /// Returns dashboard statistics in 3 queries instead of the original 6,
-  /// using conditional aggregation for the site-level metrics.
+  /// Returns dashboard statistics for professional dashboard
   Future<Map<String, dynamic>> getDashboardStats() async {
     final db = await database;
     final userId = _requireUserId();
+    final today = DateTime.now().toIso8601String().split('T')[0];
 
     // All site aggregates in one pass.
     final siteRow = (await db.rawQuery('''
@@ -943,7 +2200,9 @@ class DatabaseHelper {
         SUM(CASE WHEN status = 'active'    THEN 1 ELSE 0 END) AS activeSites,
         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completedSites,
         SUM(estimated_cost)   AS totalCost,
-        SUM(advance_received + COALESCE(construction_paid, 0)) AS totalPaid
+        SUM(advance_received + COALESCE(construction_paid, 0)) AS totalPaid,
+        SUM(CASE WHEN final_cost IS NOT NULL THEN final_cost ELSE estimated_cost END -
+            (advance_received + COALESCE(construction_paid, 0))) AS totalPending
       FROM sites WHERE user_id = ?
     ''', [userId])).first;
 
@@ -963,6 +2222,53 @@ class DatabaseHelper {
         ) ??
         0;
 
+    // Workers present/absent today
+    final attendanceRow = (await db.rawQuery('''
+      SELECT
+        SUM(CASE WHEN type = 'full' OR type = 'half' THEN 1 ELSE 0 END) AS presentToday,
+        SUM(CASE WHEN type = 'absent' THEN 1 ELSE 0 END) AS absentToday
+      FROM attendance WHERE date = ? AND user_id = ?
+    ''', [today, userId])).first;
+
+    // Total products in store
+    final totalProducts = Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM store_products WHERE user_id = ?",
+            [userId],
+          ),
+        ) ??
+        0;
+
+    final stockAlertRow = (await db.rawQuery('''
+      SELECT
+        SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) AS outOfStock,
+        SUM(CASE
+              WHEN stock > 0 AND stock <= COALESCE(critical_stock_threshold, 2.0)
+              THEN 1 ELSE 0 END) AS criticalStock,
+        SUM(CASE
+              WHEN stock > COALESCE(critical_stock_threshold, 2.0)
+               AND stock <= COALESCE(low_stock_threshold, 10.0)
+              THEN 1 ELSE 0 END) AS lowStock
+      FROM store_products
+      WHERE user_id = ?
+    ''', [userId])).first;
+
+    // Materials issued today (site_products created today)
+    final materialsIssuedToday = Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM site_products WHERE DATE(created_at) = ? AND user_id = ?",
+            [today, userId],
+          ),
+        ) ??
+        0;
+
+    // Today's expenses (advance payments approved today)
+    final expensesRow = (await db.rawQuery('''
+      SELECT COALESCE(SUM(amount), 0) AS totalExpenses
+      FROM advance_payments
+      WHERE status = 'approved' AND DATE(approved_date) = ? AND user_id = ?
+    ''', [today, userId])).first;
+
     return {
       'activeSites': (siteRow['activeSites'] as num?)?.toInt() ?? 0,
       'completedSites': (siteRow['completedSites'] as num?)?.toInt() ?? 0,
@@ -970,7 +2276,281 @@ class DatabaseHelper {
       'totalProjectCost': (siteRow['totalCost'] as num?)?.toDouble() ?? 0.0,
       'totalPaidAmount': (siteRow['totalPaid'] as num?)?.toDouble() ?? 0.0,
       'pendingAdvances': pendingAdvances,
+      'workersPresentToday':
+          (attendanceRow['presentToday'] as num?)?.toInt() ?? 0,
+      'workersAbsentToday':
+          (attendanceRow['absentToday'] as num?)?.toInt() ?? 0,
+      'totalProducts': totalProducts,
+      'outOfStock': (stockAlertRow['outOfStock'] as num?)?.toInt() ?? 0,
+      'criticalStock': (stockAlertRow['criticalStock'] as num?)?.toInt() ?? 0,
+      'lowStock': (stockAlertRow['lowStock'] as num?)?.toInt() ?? 0,
+      'materialsIssuedToday': materialsIssuedToday,
+      'pendingPayments': (siteRow['totalPending'] as num?)?.toDouble() ?? 0.0,
+      'todayExpenses':
+          (expensesRow['totalExpenses'] as num?)?.toDouble() ?? 0.0,
     };
+  }
+
+  /// Read-only: recent activity feed composed from existing tables.
+  /// Returns up to [limit] items, newest first, each:
+  /// { type, title, subtitle, time } where time is an ISO timestamp.
+  Future<List<Map<String, dynamic>>> getRecentActivity({int limit = 8}) async {
+    final db = await database;
+    final userId = _requireUserId();
+
+    final workers = (await db.rawQuery('''
+      SELECT 'worker' AS type, name AS title,
+             'New worker added' AS subtitle, created_at AS time
+      FROM workers WHERE user_id = ?
+    ''', [userId])).cast<Map<String, dynamic>>();
+
+    final materials = (await db.rawQuery('''
+      SELECT 'material' AS type,
+             (SELECT name FROM products p WHERE p.id = sp.product_id) AS title,
+             (SELECT name FROM sites s WHERE s.id = sp.site_id) AS subtitle,
+             sp.created_at AS time
+      FROM site_products sp WHERE sp.user_id = ?
+    ''', [userId])).cast<Map<String, dynamic>>();
+
+    final payments = (await db.rawQuery('''
+      SELECT 'payment' AS type,
+             'Payment received' AS title,
+             (SELECT name FROM sites s WHERE s.id = scp.site_id) AS subtitle,
+             scp.payment_date AS time
+      FROM site_construction_payments scp WHERE scp.user_id = ?
+    ''', [userId])).cast<Map<String, dynamic>>();
+
+    final expenses = (await db.rawQuery('''
+      SELECT 'expense' AS type, 'Expense added' AS title,
+             notes AS subtitle, approved_date AS time
+      FROM advance_payments
+      WHERE user_id = ? AND status = 'approved' AND approved_date IS NOT NULL
+    ''', [userId])).cast<Map<String, dynamic>>();
+
+    final all = <Map<String, dynamic>>[
+      ...workers,
+      ...materials,
+      ...payments,
+      ...expenses,
+    ];
+    all.sort((a, b) => (b['time'] as String).compareTo(a['time'] as String));
+    return all.take(limit).toList();
+  }
+
+  // ─────────────── CHART DATA QUERIES ───────────────
+
+  /// Returns attendance data for the last 30 days grouped by date
+  Future<List<Map<String, dynamic>>> getAttendanceChartData() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final thirtyDaysAgo = DateTime.now()
+        .subtract(const Duration(days: 30))
+        .toIso8601String()
+        .split('T')[0];
+
+    final rows = await db.rawQuery('''
+      SELECT 
+        date,
+        SUM(CASE WHEN type = 'full' THEN 1 ELSE 0 END) AS full_count,
+        SUM(CASE WHEN type = 'half' THEN 1 ELSE 0 END) AS half_count,
+        SUM(CASE WHEN type = 'absent' THEN 1 ELSE 0 END) AS absent_count
+      FROM attendance
+      WHERE date >= ? AND user_id = ?
+      GROUP BY date
+      ORDER BY date ASC
+    ''', [thirtyDaysAgo, userId]);
+
+    return rows;
+  }
+
+  /// Returns site progress data (name and completion percentage)
+  Future<List<Map<String, dynamic>>> getSiteProgressChartData() async {
+    final db = await database;
+    final userId = _requireUserId();
+
+    final rows = await db.rawQuery('''
+      SELECT 
+        name,
+        CASE 
+          WHEN final_cost IS NOT NULL 
+          THEN (advance_received + COALESCE(construction_paid, 0)) * 100.0 / final_cost
+          ELSE (advance_received + COALESCE(construction_paid, 0)) * 100.0 / estimated_cost
+        END AS progress_percentage,
+        status
+      FROM sites
+      WHERE user_id = ? AND status != 'completed'
+      ORDER BY progress_percentage ASC
+    ''', [userId]);
+
+    return rows;
+  }
+
+  /// Returns material usage data (top 10 products by total quantity sent to sites)
+  Future<List<Map<String, dynamic>>> getMaterialUsageChartData() async {
+    final db = await database;
+    final userId = _requireUserId();
+
+    final rows = await db.rawQuery('''
+      SELECT 
+        sp.product_id,
+        p.name AS product_name,
+        SUM(sp.quantity) AS total_quantity
+      FROM site_products sp
+      INNER JOIN products p ON sp.product_id = p.id AND p.user_id = sp.user_id
+      WHERE sp.user_id = ?
+      GROUP BY sp.product_id, p.name
+      ORDER BY total_quantity DESC
+      LIMIT 10
+    ''', [userId]);
+
+    return rows;
+  }
+
+  /// Returns expenses data for the last 30 days (approved advance payments)
+  Future<List<Map<String, dynamic>>> getExpensesChartData() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final thirtyDaysAgo = DateTime.now()
+        .subtract(const Duration(days: 30))
+        .toIso8601String()
+        .split('T')[0];
+
+    final rows = await db.rawQuery('''
+      SELECT 
+        DATE(approved_date) AS date,
+        SUM(amount) AS total_amount
+      FROM advance_payments
+      WHERE status = 'approved' AND DATE(approved_date) >= ? AND user_id = ?
+      GROUP BY DATE(approved_date)
+      ORDER BY date ASC
+    ''', [thirtyDaysAgo, userId]);
+
+    return rows;
+  }
+
+  /// Returns payments data for the last 30 days (construction payments)
+  Future<List<Map<String, dynamic>>> getPaymentsChartData() async {
+    final db = await database;
+    final userId = _requireUserId();
+    final thirtyDaysAgo = DateTime.now()
+        .subtract(const Duration(days: 30))
+        .toIso8601String()
+        .split('T')[0];
+
+    final rows = await db.rawQuery('''
+      SELECT 
+        DATE(payment_date) AS date,
+        SUM(amount) AS total_amount
+      FROM site_construction_payments
+      WHERE DATE(payment_date) >= ? AND user_id = ?
+      GROUP BY DATE(payment_date)
+      ORDER BY date ASC
+    ''', [thirtyDaysAgo, userId]);
+
+    return rows;
+  }
+
+  /// Monthly revenue (construction payments) for the last [months] months,
+  /// grouped by YYYY-MM. Read-only aggregation for the Analytics screen.
+  Future<List<Map<String, dynamic>>> getMonthlyRevenueChartData(
+      {int months = 12}) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final since = DateTime(DateTime.now().year, DateTime.now().month - (months - 1))
+        .toIso8601String()
+        .split('T')[0];
+
+    return db.rawQuery('''
+      SELECT
+        substr(payment_date, 1, 7) AS month,
+        SUM(amount) AS total_amount
+      FROM site_construction_payments
+      WHERE DATE(payment_date) >= ? AND user_id = ?
+      GROUP BY month
+      ORDER BY month ASC
+    ''', [since, userId]);
+  }
+
+  /// Monthly payroll net-salary totals for the last [months] months, grouped
+  /// by the payroll `month` column (YYYY-MM). Read-only aggregation.
+  Future<List<Map<String, dynamic>>> getMonthlyPayrollChartData(
+      {int months = 12}) async {
+    final db = await database;
+    final userId = _requireUserId();
+    final since = DateTime(DateTime.now().year, DateTime.now().month - (months - 1))
+        .toIso8601String()
+        .substring(0, 7);
+
+    return db.rawQuery('''
+      SELECT
+        month,
+        SUM(net_salary) AS total_amount,
+        COUNT(*) AS payslips
+      FROM payroll
+      WHERE month >= ? AND user_id = ?
+      GROUP BY month
+      ORDER BY month ASC
+    ''', [since, userId]);
+  }
+
+  Future<bool> hasUserData(int userId) async {
+    final db = await database;
+    for (final table in [
+      'sites',
+      'workers',
+      'store_products',
+      'user_services',
+      'attendance',
+      'advance_payments',
+      'site_construction_payments',
+      'payroll',
+    ]) {
+      final count = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM $table WHERE user_id = ?',
+        [userId],
+      ));
+      if ((count ?? 0) > 0) return true;
+    }
+    return false;
+  }
+
+  /// Counts user-owned rows in every syncable table. Used by the cloud sync
+  /// service to log per-table record counts and to guard against uploading an
+  /// empty database. Centralized here so the sync service never writes raw
+  /// SQL against [DatabaseHelper].
+  Future<Map<String, int>> countUserRecords(int userId) async {
+    final db = await database;
+    final counts = <String, int>{};
+    for (final table in [
+      'sites',
+      'workers',
+      'store_products',
+      'user_services',
+      'attendance',
+      'advance_payments',
+      'site_construction_payments',
+      'products',
+      'site_workers',
+      'site_products',
+      'site_services',
+      // These must mirror exportUserData() exactly. If a table is exported
+      // but not counted here, a user whose only data lives in it would be
+      // wrongly reported as "empty" and the upload would be blocked — even
+      // though real data exists (and the UI shows it).
+      'worker_documents',
+      'worker_performance',
+      'payroll',
+      'documents',
+    ]) {
+      counts[table] = Sqflite.firstIntValue(
+            await db.rawQuery(
+              'SELECT COUNT(*) FROM $table WHERE user_id = ?',
+              [userId],
+            ),
+          ) ??
+          0;
+    }
+    return counts;
   }
 
   Future<Map<String, dynamic>> exportUserData(int userId) async {
@@ -990,12 +2570,34 @@ class DatabaseHelper {
           where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
       'advances': await db.query('advance_payments',
           where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'storeProducts': await db.query('store_products',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'siteProducts': await db.query('site_products',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'siteServices': await db.query('site_services',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'userServices': await db.query('user_services',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'constructionPayments': await db.query('site_construction_payments',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'workerDocuments': await db.query('worker_documents',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'workerPerformance': await db.query('worker_performance',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'payroll': await db.query('payroll',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
+      'documents': await db.query('documents',
+          where: 'user_id = ?', whereArgs: [userId], orderBy: 'id ASC'),
     };
   }
 
   Future<void> replaceUserData(int userId, Map<String, dynamic> data) async {
-    final db = await database;
-    await db.transaction((txn) async {
+    _suppressMutateNotify = true;
+    try {
+      final db = await database;
+      await db.transaction((txn) async {
+      await txn.delete('site_construction_payments',
+          where: 'user_id = ?', whereArgs: [userId]);
       await txn.delete(
         'advance_payments',
         where: 'user_id = ?',
@@ -1005,6 +2607,20 @@ class DatabaseHelper {
       await txn
           .delete('site_workers', where: 'user_id = ?', whereArgs: [userId]);
       await txn.delete('products', where: 'user_id = ?', whereArgs: [userId]);
+      await txn
+          .delete('site_services', where: 'user_id = ?', whereArgs: [userId]);
+      await txn
+          .delete('site_products', where: 'user_id = ?', whereArgs: [userId]);
+      await txn
+          .delete('store_products', where: 'user_id = ?', whereArgs: [userId]);
+      await txn
+          .delete('user_services', where: 'user_id = ?', whereArgs: [userId]);
+      await txn.delete('worker_documents',
+          where: 'user_id = ?', whereArgs: [userId]);
+      await txn.delete('worker_performance',
+          where: 'user_id = ?', whereArgs: [userId]);
+      await txn.delete('payroll', where: 'user_id = ?', whereArgs: [userId]);
+      await txn.delete('documents', where: 'user_id = ?', whereArgs: [userId]);
       await txn.delete('workers', where: 'user_id = ?', whereArgs: [userId]);
       await txn.delete('sites', where: 'user_id = ?', whereArgs: [userId]);
 
@@ -1065,6 +2681,92 @@ class DatabaseHelper {
           await txn.insert('advance_payments', map);
         }
       }
+
+      final storeProductIds = <int, int>{};
+      for (final row
+          in List<Map<String, dynamic>>.from(data['storeProducts'] ?? [])) {
+        final oldId = (row['id'] as num).toInt();
+        final newId =
+            await txn.insert('store_products', _insertable(row, userId));
+        storeProductIds[oldId] = newId;
+      }
+
+      for (final row
+          in List<Map<String, dynamic>>.from(data['siteProducts'] ?? [])) {
+        final map = _insertable(row, userId, siteIds: siteIds);
+        if (map['product_id'] != null &&
+            storeProductIds.containsKey(map['product_id'])) {
+          map['product_id'] = storeProductIds[map['product_id']];
+          if (map['site_id'] != null) {
+            // ignore conflict so re-imports don't fail
+            await txn.insert('site_products', map,
+                conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+        }
+      }
+
+      for (final row
+          in List<Map<String, dynamic>>.from(data['siteServices'] ?? [])) {
+        final map = _insertable(row, userId, siteIds: siteIds);
+        if (map['site_id'] != null) {
+          await txn.insert('site_services', map,
+              conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+      }
+
+      for (final row
+          in List<Map<String, dynamic>>.from(data['userServices'] ?? [])) {
+        await txn.insert('user_services', _insertable(row, userId),
+            conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+
+      for (final row in List<Map<String, dynamic>>.from(
+          data['constructionPayments'] ?? [])) {
+        final map = _insertable(row, userId, siteIds: siteIds);
+        if (map['site_id'] != null) {
+          await txn.insert('site_construction_payments', map,
+              conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+      }
+
+      for (final row
+          in List<Map<String, dynamic>>.from(data['workerDocuments'] ?? [])) {
+        final map = _insertable(row, userId, workerIds: workerIds);
+        if (map['worker_id'] != null) {
+          await txn.insert('worker_documents', map,
+              conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+      }
+
+      for (final row
+          in List<Map<String, dynamic>>.from(data['workerPerformance'] ?? [])) {
+        final map = _insertable(row, userId, workerIds: workerIds);
+        if (map['worker_id'] != null) {
+          await txn.insert('worker_performance', map,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      for (final row
+          in List<Map<String, dynamic>>.from(data['payroll'] ?? [])) {
+        final map = _insertable(row, userId, workerIds: workerIds);
+        if (map['worker_id'] != null) {
+          await txn.insert('payroll', map,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Documents carry a stable `uuid` (no device-local id remap needed), so
+      // they re-import verbatim. The binary file itself is synchronized via
+      // Firebase Storage (handled by DocumentStorageService), not this JSON.
+      for (final row
+          in List<Map<String, dynamic>>.from(data['documents'] ?? [])) {
+        await txn.insert('documents', _insertable(row, userId),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
     });
+    } finally {
+      _suppressMutateNotify = false;
+    }
   }
 }

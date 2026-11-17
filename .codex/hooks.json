@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/lenevo/.local/bin/graphify.EXE hook-check"
+          },
+          {
+            "type": "command",
+            "command": "python \"D:/Site and worker management app/.codex/hooks/skill_gate.py\" hook",
+            "timeout": 120,
+            "statusMessage": "Checking skill install policy"
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"D:/Site and worker management app/.codex/hooks/skill_gate.py\" hook",
+            "timeout": 120,
+            "statusMessage": "Checking skill install policy"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook codex"
+          }
+        ]
+      }
+    ]
+  }
+}
