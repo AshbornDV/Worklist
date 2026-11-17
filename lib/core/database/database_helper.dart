@@ -37,6 +37,23 @@ class DatabaseHelper {
   /// layer (e.g. the Documents provider) that need the signed-in user id.
   int requireUserId() => _requireUserId();
 
+  /// Test seam: executes a SQL script whose statements are separated by `;`.
+  /// Characterization tests use it to seed data with SQL that the Kotlin port
+  /// replays verbatim, so the fixture never depends on Dart-only code paths.
+  Future<void> runRawSqlScript(String script) async {
+    final db = await database;
+    for (final statement in script.split(';')) {
+      if (statement.trim().isEmpty) continue;
+      await db.execute(statement);
+    }
+  }
+
+  /// Test seam: runs an arbitrary read query through the open connection.
+  Future<List<Map<String, Object?>>> rawQuery(String sql) async {
+    final db = await database;
+    return db.rawQuery(sql);
+  }
+
   // ── Cloud-sync write hook ────────────────────────────────────────────────
   // Fired after any local user-data mutation so the cloud-sync layer can push
   // the change. Implemented as a callback (not a direct Firebase import) to
