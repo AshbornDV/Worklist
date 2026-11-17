@@ -1,0 +1,104 @@
+{
+  "rules": [
+    {
+      "id": "briefing_daily",
+      "type": "dailySummary"
+    },
+    {
+      "id": "briefing_monthly",
+      "type": "monthlySummary"
+    },
+    {
+      "id": "briefing_weekly",
+      "type": "weeklySummary"
+    },
+    {
+      "id": "construction_payment",
+      "type": "payment"
+    },
+    {
+      "id": "customer_payment",
+      "type": "payment"
+    },
+    {
+      "id": "inventory_audit_reminder",
+      "type": "inventory"
+    },
+    {
+      "id": "inventory_frequently_used_low",
+      "type": "inventory"
+    },
+    {
+      "id": "inventory_material_not_updated",
+      "type": "inventory"
+    },
+    {
+      "id": "inventory_stock_state",
+      "type": "inventory"
+    },
+    {
+      "id": "payroll",
+      "type": "payroll"
+    },
+    {
+      "id": "site_lifecycle",
+      "type": "site"
+    },
+    {
+      "id": "worker_advance",
+      "type": "payroll"
+    },
+    {
+      "id": "worker_lifecycle",
+      "type": "worker"
+    },
+    {
+      "id": "worker_salary",
+      "type": "payroll"
+    }
+  ],
+  "allOn": [
+    "briefing_daily",
+    "briefing_monthly",
+    "briefing_weekly",
+    "construction_payment",
+    "customer_payment",
+    "inventory_audit_reminder",
+    "inventory_frequently_used_low",
+    "inventory_material_not_updated",
+    "inventory_stock_state",
+    "payroll",
+    "site_lifecycle",
+    "worker_advance",
+    "worker_lifecycle",
+    "worker_salary"
+  ],
+  "allOff": [],
+  "defaultSettings": {
+    "masterEnabled": true,
+    "payments": true,
+    "payroll": true,
+    "inventory": true,
+    "workers": true,
+    "attendance": true,
+    "sites": true,
+    "services": true,
+    "dailySummary": false,
+    "weeklySummary": false,
+    "monthlySummary": false,
+    "sound": true,
+    "vibration": true,
+    "priority": "normal",
+    "quietHoursEnabled": false,
+    "quietHoursStart": "22:0",
+    "quietHoursEnd": "7:0",
+    "reminderTimes": [
+      "9:0"
+    ],
+    "dailyBriefingTime": "8:0",
+    "weeklyReportWeekday": 1,
+    "weeklyReportTime": "9:0",
+    "monthlyReportDay": 1,
+    "monthlyReportTime": "9:0"
+  }
+}
