@@ -1,0 +1,83 @@
+package com.example.worklist.core.designsystem
+
+import androidx.compose.ui.graphics.Color
+
+/**
+ * Every colour from contracts/theme.json, copied byte-for-byte.
+ *
+ * The #AARRGGBB values here are the single source of truth for the native
+ * theme. ThemeContractTest asserts each of them against the contract, so a
+ * silent drift from Flutter is impossible without the test going red.
+ */
+
+// ── Light scheme (#AARRGGBB from contracts/theme.json:light) ──
+val lightPrimary = Color(0xFF405F90)
+val lightOnPrimary = Color(0xFFFFFFFF)
+val lightPrimaryContainer = Color(0xFFD6E3FF)
+val lightOnPrimaryContainer = Color(0xFF274777)
+val lightSecondary = Color(0xFF00897B)
+val lightOnSecondary = Color(0xFFFFFFFF)
+val lightSecondaryContainer = Color(0xFFDAE2F9)
+val lightOnSecondaryContainer = Color(0xFF3E4758)
+val lightTertiary = Color(0xFF6F5575)
+val lightOnTertiary = Color(0xFFFFFFFF)
+val lightTertiaryContainer = Color(0xFFF9D8FD)
+val lightOnTertiaryContainer = Color(0xFF563E5C)
+val lightError = Color(0xFFBA1A1A)
+val lightOnError = Color(0xFFFFFFFF)
+val lightErrorContainer = Color(0xFFFFDAD6)
+val lightOnErrorContainer = Color(0xFF93000A)
+val lightSurface = Color(0xFFF9F9FF)
+val lightOnSurface = Color(0xFF191C20)
+val lightSurfaceDim = Color(0xFFD9D9E0)
+val lightSurfaceBright = Color(0xFFF9F9FF)
+val lightSurfaceContainerLowest = Color(0xFFFFFFFF)
+val lightSurfaceContainerLow = Color(0xFFF3F3FA)
+val lightSurfaceContainer = Color(0xFFEDEDF4)
+val lightSurfaceContainerHigh = Color(0xFFE7E8EE)
+val lightSurfaceContainerHighest = Color(0xFFE2E2E9)
+val lightOnSurfaceVariant = Color(0xFF44474E)
+val lightOutline = Color(0xFF74777F)
+val lightOutlineVariant = Color(0xFFC4C6CF)
+val lightShadow = Color(0xFF000000)
+val lightScrim = Color(0xFF000000)
+val lightInverseSurface = Color(0xFF2E3036)
+val lightOnInverseSurface = Color(0xFFF0F0F7)
+val lightInversePrimary = Color(0xFFA9C7FF)
+val lightSurfaceTint = Color(0xFF405F90)
+
+// ── Dark scheme (#AARRGGBB from contracts/theme.json:dark) ──
+val darkPrimary = Color(0xFFA9C7FF)
+val darkOnPrimary = Color(0xFF08305F)
+val darkPrimaryContainer = Color(0xFF274777)
+val darkOnPrimaryContainer = Color(0xFFD6E3FF)
+val darkSecondary = Color(0xFF00897B)
+val darkOnSecondary = Color(0xFF283141)
+val darkSecondaryContainer = Color(0xFF3E4758)
+val darkOnSecondaryContainer = Color(0xFFDAE2F9)
+val darkTertiary = Color(0xFFDCBCE1)
+val darkOnTertiary = Color(0xFF3F2845)
+val darkTertiaryContainer = Color(0xFF563E5C)
+val darkOnTertiaryContainer = Color(0xFFF9D8FD)
+val darkError = Color(0xFFFFB4AB)
+val darkOnError = Color(0xFF690005)
+val darkErrorContainer = Color(0xFF93000A)
+val darkOnErrorContainer = Color(0xFFFFDAD6)
+val darkSurface = Color(0xFF111318)
+val darkOnSurface = Color(0xFFE2E2E9)
+val darkSurfaceDim = Color(0xFF111318)
+val darkSurfaceBright = Color(0xFF37393E)
+val darkSurfaceContainerLowest = Color(0xFF0C0E13)
+val darkSurfaceContainerLow = Color(0xFF191C20)
+val darkSurfaceContainer = Color(0xFF1D2024)
+val darkSurfaceContainerHigh = Color(0xFF282A2F)
+val darkSurfaceContainerHighest = Color(0xFF33353A)
+val darkOnSurfaceVariant = Color(0xFFC4C6CF)
+val darkOutline = Color(0xFF8E9099)
+val darkOutlineVariant = Color(0xFF44474E)
+val darkShadow = Color(0xFF000000)
+val darkScrim = Color(0xFF000000)
+val darkInverseSurface = Color(0xFFE2E2E9)
+val darkOnInverseSurface = Color(0xFF2E3036)
+val darkInversePrimary = Color(0xFF405F90)
+val darkSurfaceTint = Color(0xFFA9C7FF)
