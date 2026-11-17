@@ -1,0 +1,16 @@
+{
+  "cementStock": 2.0,
+  "steelRodStock": 7.0,
+  "paintStock": 1.0,
+  "paintDeductionRejected": true,
+  "barcodeLookup": {
+    "id": 1,
+    "name": "Cement",
+    "barcode": "CEM-001",
+    "rate": 550.0,
+    "unit": "bag",
+    "stock": 2.0,
+    "lowStockThreshold": 10.0,
+    "criticalStockThreshold": 2.0
+  }
+}

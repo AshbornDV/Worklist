@@ -69,3 +69,12 @@ VALUES (1, 3, 3000, '2026-03-13', 'pending', NULL, NULL, '2026-03-13T10:00:00.00
 -- so getPayrollForMonth can find it, even though toMap emits an ISO timestamp.
 INSERT INTO payroll (user_id, worker_id, month, full_days, half_days, daily_rate, overtime_hours, overtime_rate, advance_amount, bonus, deductions, net_salary, status, notes, created_at, updated_at)
 VALUES (1, 1, '2026-03-01', 3, 1, 950, 0, 0, 1850, 0, 0, 1475, 'draft', NULL, '2026-03-15T12:00:00.000', '2026-03-15T12:00:00.000');
+
+-- Store inventory (global products). site-level issuing is milestone 8.
+-- Thresholds pinned explicitly so the stock-alert contract is unambiguous.
+INSERT INTO store_products (user_id, name, barcode, rate, unit, stock, low_stock_threshold, critical_stock_threshold, created_at, updated_at)
+VALUES (1, 'Cement', 'CEM-001', 550, 'bag', 40, 10, 2, '2026-02-01T08:00:00.000', '2026-02-01T08:00:00.000');
+INSERT INTO store_products (user_id, name, barcode, rate, unit, stock, low_stock_threshold, critical_stock_threshold, created_at, updated_at)
+VALUES (1, 'Steel Rod', 'STL-002', 1200, 'ton', 5, 10, 2, '2026-02-01T08:00:00.000', '2026-02-01T08:00:00.000');
+INSERT INTO store_products (user_id, name, barcode, rate, unit, stock, low_stock_threshold, critical_stock_threshold, created_at, updated_at)
+VALUES (1, 'Paint', 'PNT-003', 800, 'litre', 1, 10, 2, '2026-02-01T08:00:00.000', '2026-02-01T08:00:00.000');
