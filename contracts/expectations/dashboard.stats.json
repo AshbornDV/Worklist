@@ -1,0 +1,17 @@
+{
+  "activeSites": 1,
+  "completedSites": 1,
+  "activeWorkers": 4,
+  "totalProjectCost": 1530000.0,
+  "totalPaidAmount": 0.0,
+  "pendingAdvances": 0,
+  "workersPresentToday": 0,
+  "workersAbsentToday": 0,
+  "totalProducts": 0,
+  "outOfStock": 0,
+  "criticalStock": 0,
+  "lowStock": 0,
+  "materialsIssuedToday": 0,
+  "pendingPayments": 1530000.0,
+  "todayExpenses": 0.0
+}
