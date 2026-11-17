@@ -3,6 +3,13 @@
 -- The account row is created by DatabaseHelper.createAccount before this runs,
 -- so user_id is 1 on a fresh database. Semicolons are statement delimiters, so
 -- no comment or string literal may contain one.
+--
+-- Non-Dart replayers (the Kotlin SQLDelight port in milestone 2) must insert a
+-- users row with id = 1 BEFORE executing this file. Every business table has
+-- FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE, so with
+-- PRAGMA foreign_keys = ON the first INSERT below fails without that row.
+-- Do not add an INSERT for the user here: the Dart harness owns account
+-- creation, and a second copy of the user row would drift.
 
 -- Sites: created_at/updated_at are fixed so contracts never leak wall-clock time.
 INSERT INTO sites (user_id, name, area, rate, status, estimated_cost, site_size, created_at, updated_at)
