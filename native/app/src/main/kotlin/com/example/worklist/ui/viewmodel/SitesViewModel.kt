@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worklist.data.model.Site
 import com.example.worklist.data.repository.SiteRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,7 @@ class SitesViewModel(
     fun load() {
         _loading.value = true
         viewModelScope.launch {
-            val data = withContext(Dispatchers.IO) { siteRepository.getAllSync() }
+            val data = withContext(Dispatchers.IO) { siteRepository.getAllSync(CompanySession.companyId.value) }
             _sites.value = data
             _loading.value = false
         }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.worklist.data.model.Collection
 import com.example.worklist.data.repository.CollectionRepository
 import com.example.worklist.data.repository.SiteRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,8 +34,9 @@ class CollectionsViewModel(
         _loading.value = true
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                _collections.value = collectionRepository.getAllSync()
-                _siteNames.value = siteRepository.getAllSync().associate { it.id to it.name }
+                val cid = CompanySession.companyId.value
+                _collections.value = collectionRepository.getAllSync(cid)
+                _siteNames.value = siteRepository.getAllSync(cid).associate { it.id to it.name }
             }
             _loading.value = false
         }

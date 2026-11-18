@@ -27,41 +27,41 @@ interface CollectionDao {
     @Delete
     fun delete(collection: Collection): Int
 
-    @Query("DELETE FROM collections")
-    fun deleteAll(): Int
+    @Query("DELETE FROM collections WHERE company_id = :companyId")
+    fun deleteAll(companyId: Int)
 
-    @Query("SELECT * FROM collections WHERE id = :id")
-    fun getById(id: Int): Flow<Collection?>
+    @Query("SELECT * FROM collections WHERE id = :id AND company_id = :companyId")
+    fun getById(id: Int, companyId: Int): Flow<Collection?>
 
-    @Query("SELECT * FROM collections WHERE id = :id")
-    fun getByIdSync(id: Int): Collection?
+    @Query("SELECT * FROM collections WHERE id = :id AND company_id = :companyId")
+    fun getByIdSync(id: Int, companyId: Int): Collection?
 
-    @Query("SELECT * FROM collections WHERE site_id = :siteId ORDER BY due_date ASC")
-    fun getBySiteId(siteId: Int): Flow<List<Collection>>
+    @Query("SELECT * FROM collections WHERE site_id = :siteId AND company_id = :companyId ORDER BY due_date ASC")
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Collection>>
 
-    @Query("SELECT * FROM collections WHERE customer_id = :customerId ORDER BY due_date ASC")
-    fun getByCustomerId(customerId: Int): Flow<List<Collection>>
+    @Query("SELECT * FROM collections WHERE customer_id = :customerId AND company_id = :companyId ORDER BY due_date ASC")
+    fun getByCustomerId(customerId: Int, companyId: Int): Flow<List<Collection>>
 
-    @Query("SELECT * FROM collections WHERE status = :status ORDER BY due_date ASC")
-    fun getByStatus(status: String): Flow<List<Collection>>
+    @Query("SELECT * FROM collections WHERE status = :status AND company_id = :companyId ORDER BY due_date ASC")
+    fun getByStatus(status: String, companyId: Int): Flow<List<Collection>>
 
-    @Query("SELECT * FROM collections ORDER BY due_date ASC")
-    fun getAll(): Flow<List<Collection>>
+    @Query("SELECT * FROM collections WHERE company_id = :companyId ORDER BY due_date ASC")
+    fun getAll(companyId: Int): Flow<List<Collection>>
 
-    @Query("SELECT * FROM collections ORDER BY due_date ASC")
-    fun getAllSync(): List<Collection>
+    @Query("SELECT * FROM collections WHERE company_id = :companyId ORDER BY due_date ASC")
+    fun getAllSync(companyId: Int): List<Collection>
 
-    @Query("SELECT * FROM collections WHERE synced = 0 ORDER BY created_at ASC")
-    fun getUnsynced(): Flow<List<Collection>>
+    @Query("SELECT * FROM collections WHERE synced = 0 AND company_id = :companyId ORDER BY created_at ASC")
+    fun getUnsynced(companyId: Int): Flow<List<Collection>>
 
-    @Query("SELECT COUNT(*) FROM collections WHERE status = 'pending'")
-    fun countPending(): Int
+    @Query("SELECT COUNT(*) FROM collections WHERE status = 'pending' AND company_id = :companyId")
+    fun countPending(companyId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM collections WHERE status = 'overdue'")
-    fun countOverdue(): Int
+    @Query("SELECT COUNT(*) FROM collections WHERE status = 'overdue' AND company_id = :companyId")
+    fun countOverdue(companyId: Int): Int
 
-    @Query("SELECT SUM(amount - paid_amount) FROM collections WHERE status IN ('pending', 'overdue', 'partial')")
-    fun sumOutstanding(): Double
+    @Query("SELECT SUM(amount - paid_amount) FROM collections WHERE status IN ('pending', 'overdue', 'partial') AND company_id = :companyId")
+    fun sumOutstanding(companyId: Int): Double
 
     @Transaction
     fun upsert(collection: Collection): Long = insert(collection)

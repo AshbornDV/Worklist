@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worklist.data.model.Product
 import com.example.worklist.data.repository.ProductRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,7 @@ class ProductsViewModel(
     fun load() {
         _loading.value = true
         viewModelScope.launch {
-            _products.value = withContext(Dispatchers.IO) { productRepository.getAllSync() }
+            _products.value = withContext(Dispatchers.IO) { productRepository.getAllSync(CompanySession.companyId.value) }
             _loading.value = false
         }
     }

@@ -36,35 +36,35 @@ interface PayrollDao {
     @Query("SELECT * FROM payroll_records WHERE id = :id")
     fun getByIdSync(id: Int): PayrollRecord?
 
-    @Query("SELECT * FROM payroll_records WHERE worker_id = :workerId ORDER BY period_start DESC")
-    fun getByWorkerId(workerId: Int): Flow<List<PayrollRecord>>
+    @Query("SELECT * FROM payroll_records WHERE worker_id = :workerId AND company_id = :companyId ORDER BY period_start DESC")
+    fun getByWorkerId(workerId: Int, companyId: Int): Flow<List<PayrollRecord>>
 
-    @Query("SELECT * FROM payroll_records WHERE site_id = :siteId ORDER BY period_start DESC")
-    fun getBySiteId(siteId: Int): Flow<List<PayrollRecord>>
+    @Query("SELECT * FROM payroll_records WHERE site_id = :siteId AND company_id = :companyId ORDER BY period_start DESC")
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<PayrollRecord>>
 
-    @Query("SELECT * FROM payroll_records WHERE period_start = :periodStart AND period_end = :periodEnd ORDER BY worker_id ASC")
-    fun getByPeriod(periodStart: String, periodEnd: String): Flow<List<PayrollRecord>>
+    @Query("SELECT * FROM payroll_records WHERE period_start = :periodStart AND period_end = :periodEnd AND company_id = :companyId ORDER BY worker_id ASC")
+    fun getByPeriod(periodStart: String, periodEnd: String, companyId: Int): Flow<List<PayrollRecord>>
 
-    @Query("SELECT * FROM payroll_records WHERE period_start = :periodStart AND period_end = :periodEnd ORDER BY worker_id ASC")
-    fun getByPeriodSync(periodStart: String, periodEnd: String): List<PayrollRecord>
+    @Query("SELECT * FROM payroll_records WHERE period_start = :periodStart AND period_end = :periodEnd AND company_id = :companyId ORDER BY worker_id ASC")
+    fun getByPeriodSync(periodStart: String, periodEnd: String, companyId: Int): List<PayrollRecord>
 
-    @Query("SELECT * FROM payroll_records ORDER BY period_start DESC")
-    fun getAllSync(): List<PayrollRecord>
+    @Query("SELECT * FROM payroll_records WHERE company_id = :companyId ORDER BY period_start DESC")
+    fun getAllSync(companyId: Int): List<PayrollRecord>
 
-    @Query("SELECT * FROM payroll_records WHERE status = :status ORDER BY period_start DESC")
-    fun getByStatus(status: String): Flow<List<PayrollRecord>>
+    @Query("SELECT * FROM payroll_records WHERE status = :status AND company_id = :companyId ORDER BY period_start DESC")
+    fun getByStatus(status: String, companyId: Int): Flow<List<PayrollRecord>>
 
-    @Query("SELECT * FROM payroll_records WHERE synced = 0 ORDER BY created_at ASC")
-    fun getUnsynced(): Flow<List<PayrollRecord>>
+    @Query("SELECT * FROM payroll_records WHERE synced = 0 AND company_id = :companyId ORDER BY created_at ASC")
+    fun getUnsynced(companyId: Int): Flow<List<PayrollRecord>>
 
-    @Query("SELECT COUNT(*) FROM payroll_records WHERE status = 'pending'")
-    fun countPending(): Int
+    @Query("SELECT COUNT(*) FROM payroll_records WHERE status = 'pending' AND company_id = :companyId")
+    fun countPending(companyId: Int): Int
 
-    @Query("SELECT SUM(net_pay) FROM payroll_records WHERE status = 'paid'")
-    fun sumPaid(): Double
+    @Query("SELECT SUM(net_pay) FROM payroll_records WHERE status = 'paid' AND company_id = :companyId")
+    fun sumPaid(companyId: Int): Double
 
-    @Query("SELECT SUM(advance_deduction) FROM payroll_records WHERE status = 'paid'")
-    fun sumAdvanceDeductions(): Double
+    @Query("SELECT SUM(advance_deduction) FROM payroll_records WHERE status = 'paid' AND company_id = :companyId")
+    fun sumAdvanceDeductions(companyId: Int): Double
 
     @Transaction
     fun upsert(record: PayrollRecord): Long = insert(record)

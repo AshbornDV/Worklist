@@ -30,56 +30,62 @@ interface AttendanceDao {
     @Query("DELETE FROM attendance")
     fun deleteAll(): Int
 
-    @Query("SELECT * FROM attendance WHERE id = :id")
-    fun getById(id: Int): Flow<Attendance?>
+    @Query("SELECT * FROM attendance WHERE id = :id AND company_id = :companyId")
+    fun getById(id: Int, companyId: Int): Flow<Attendance?>
 
-    @Query("SELECT * FROM attendance WHERE id = :id")
-    fun getByIdSync(id: Int): Attendance?
+    @Query("SELECT * FROM attendance WHERE id = :id AND company_id = :companyId")
+    fun getByIdSync(id: Int, companyId: Int): Attendance?
 
-    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND date = :date")
-    fun getByWorkerAndDate(workerId: Int, date: String): Flow<Attendance?>
+    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND date = :date AND company_id = :companyId")
+    fun getByWorkerAndDate(workerId: Int, date: String, companyId: Int): Flow<Attendance?>
 
-    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND date = :date")
-    fun getByWorkerAndDateSync(workerId: Int, date: String): Attendance?
+    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND date = :date AND company_id = :companyId")
+    fun getByWorkerAndDateSync(workerId: Int, date: String, companyId: Int): Attendance?
 
-    @Query("SELECT * FROM attendance WHERE worker_id = :workerId ORDER BY date DESC")
-    fun getByWorkerId(workerId: Int): Flow<List<Attendance>>
+    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND company_id = :companyId ORDER BY date DESC")
+    fun getByWorkerId(workerId: Int, companyId: Int): Flow<List<Attendance>>
 
-    @Query("SELECT * FROM attendance WHERE site_id = :siteId AND date = :date ORDER BY check_in_time ASC")
-    fun getBySiteAndDate(siteId: Int, date: String): Flow<List<Attendance>>
+    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND company_id = :companyId ORDER BY date DESC")
+    fun getByWorkerIdSync(workerId: Int, companyId: Int): List<Attendance>
 
-    @Query("SELECT * FROM attendance WHERE site_id = :siteId AND date = :date ORDER BY check_in_time ASC")
-    fun getBySiteAndDateSync(siteId: Int, date: String): List<Attendance>
+    @Query("SELECT * FROM attendance WHERE site_id = :siteId AND date = :date AND company_id = :companyId ORDER BY check_in_time ASC")
+    fun getBySiteAndDate(siteId: Int, date: String, companyId: Int): Flow<List<Attendance>>
 
-    @Query("SELECT * FROM attendance WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC, worker_id ASC")
-    fun getByDateRange(startDate: String, endDate: String): Flow<List<Attendance>>
+    @Query("SELECT * FROM attendance WHERE site_id = :siteId AND date = :date AND company_id = :companyId ORDER BY check_in_time ASC")
+    fun getBySiteAndDateSync(siteId: Int, date: String, companyId: Int): List<Attendance>
 
-    @Query("SELECT * FROM attendance WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC, worker_id ASC")
-    fun getByDateRangeSync(startDate: String, endDate: String): List<Attendance>
+    @Query("SELECT * FROM attendance WHERE date BETWEEN :startDate AND :endDate AND company_id = :companyId ORDER BY date DESC, worker_id ASC")
+    fun getByDateRange(startDate: String, endDate: String, companyId: Int): Flow<List<Attendance>>
 
-    @Query("SELECT * FROM attendance WHERE synced = 0 ORDER BY date ASC")
-    fun getUnsynced(): Flow<List<Attendance>>
+    @Query("SELECT * FROM attendance WHERE date BETWEEN :startDate AND :endDate AND company_id = :companyId ORDER BY date DESC, worker_id ASC")
+    fun getByDateRangeSync(startDate: String, endDate: String, companyId: Int): List<Attendance>
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND date = :date AND type = 'full'")
-    fun countFullByWorkerAndDate(workerId: Int, date: String): Int
+    @Query("SELECT * FROM attendance WHERE synced = 0 AND company_id = :companyId ORDER BY date ASC")
+    fun getUnsynced(companyId: Int): Flow<List<Attendance>>
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND date = :date AND type = 'half'")
-    fun countHalfByWorkerAndDate(workerId: Int, date: String): Int
+    @Query("SELECT * FROM attendance WHERE company_id = :companyId ORDER BY date DESC")
+    fun getAllSync(companyId: Int): List<Attendance>
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND date = :date AND type = 'absent'")
-    fun countAbsentByWorkerAndDate(workerId: Int, date: String): Int
+    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND date = :date AND type = 'full' AND company_id = :companyId")
+    fun countFullByWorkerAndDate(workerId: Int, date: String, companyId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE site_id = :siteId AND date = :date AND type = 'full'")
-    fun countFullBySiteAndDate(siteId: Int, date: String): Int
+    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND date = :date AND type = 'half' AND company_id = :companyId")
+    fun countHalfByWorkerAndDate(workerId: Int, date: String, companyId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE site_id = :siteId AND date = :date AND type = 'half'")
-    fun countHalfBySiteAndDate(siteId: Int, date: String): Int
+    @Query("SELECT COUNT(*) FROM attendance WHERE worker_id = :workerId AND date = :date AND type = 'absent' AND company_id = :companyId")
+    fun countAbsentByWorkerAndDate(workerId: Int, date: String, companyId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE site_id = :siteId AND date = :date AND type = 'absent'")
-    fun countAbsentBySiteAndDate(siteId: Int, date: String): Int
+    @Query("SELECT COUNT(*) FROM attendance WHERE site_id = :siteId AND date = :date AND type = 'full' AND company_id = :companyId")
+    fun countFullBySiteAndDate(siteId: Int, date: String, companyId: Int): Int
 
-    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND date BETWEEN :startDate AND :endDate ORDER BY date ASC")
-    fun getWorkerChartData(workerId: Int, startDate: String, endDate: String): Flow<List<Attendance>>
+    @Query("SELECT COUNT(*) FROM attendance WHERE site_id = :siteId AND date = :date AND type = 'half' AND company_id = :companyId")
+    fun countHalfBySiteAndDate(siteId: Int, date: String, companyId: Int): Int
+
+    @Query("SELECT COUNT(*) FROM attendance WHERE site_id = :siteId AND date = :date AND type = 'absent' AND company_id = :companyId")
+    fun countAbsentBySiteAndDate(siteId: Int, date: String, companyId: Int): Int
+
+    @Query("SELECT * FROM attendance WHERE worker_id = :workerId AND date BETWEEN :startDate AND :endDate AND company_id = :companyId ORDER BY date ASC")
+    fun getWorkerChartData(workerId: Int, startDate: String, endDate: String, companyId: Int): Flow<List<Attendance>>
 
     @Transaction
     fun upsert(attendance: Attendance): Long = insert(attendance)

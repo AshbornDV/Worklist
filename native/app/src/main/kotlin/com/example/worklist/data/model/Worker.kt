@@ -8,7 +8,12 @@ import androidx.room.Index
 
 @Entity(
     tableName = "workers",
-    indices = [Index(value = ["site_id"]), Index(value = ["user_id"])]
+    indices = [
+        Index(value = ["company_id"]),
+        Index(value = ["site_id"]),
+        Index(value = ["user_id"]),
+        Index(value = ["current_site_id"])
+    ]
 )
 
 data class Worker(
@@ -71,7 +76,19 @@ data class Worker(
     var updatedAt: String = "",
 
     @ColumnInfo(name = "synced")
-    var synced: Boolean = false
+    var synced: Boolean = false,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0,
+
+    @ColumnInfo(name = "current_site_id")
+    var currentSiteId: Int = 0,
+
+    @ColumnInfo(name = "paid_total")
+    var paidTotal: Double = 0.0,
+
+    @ColumnInfo(name = "absent_days")
+    var absentDays: Int = 0
 ) {
     companion object {
         const val STATUS_ACTIVE = "active"

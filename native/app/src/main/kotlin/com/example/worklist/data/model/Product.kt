@@ -8,7 +8,7 @@ import androidx.room.Index
 
 @Entity(
     tableName = "products",
-    indices = [Index(value = ["category"]), Index(value = ["site_id"])]
+    indices = [Index(value = ["category"]), Index(value = ["site_id"]), Index(value = ["company_id"])]
 )
 
 data class Product(
@@ -56,7 +56,10 @@ data class Product(
     var updatedAt: String = "",
 
     @ColumnInfo(name = "synced")
-    var synced: Boolean = false
+    var synced: Boolean = false,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0
 ) {
     fun isOutOfStock(): Boolean = stockQuantity <= 0
     fun isCritical(): Boolean = stockQuantity <= criticalStock && stockQuantity > 0

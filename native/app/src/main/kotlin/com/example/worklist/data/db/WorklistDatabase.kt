@@ -13,20 +13,28 @@ import com.example.worklist.data.model.Collection as CollectionModel
 import com.example.worklist.data.model.ServiceRecord
 import com.example.worklist.data.model.User
 import com.example.worklist.data.model.Notification
+import com.example.worklist.data.model.Company
+import com.example.worklist.data.model.CompanyMembership
+import com.example.worklist.data.model.Payment
+import com.example.worklist.data.model.StockMovement
 
 @Database(
     entities = [
+        Company::class,
+        CompanyMembership::class,
         Site::class,
         Worker::class,
         Product::class,
         Attendance::class,
         PayrollRecord::class,
+        Payment::class,
+        StockMovement::class,
         CollectionModel::class,
         ServiceRecord::class,
         User::class,
         Notification::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class WorklistDatabase : RoomDatabase() {
@@ -39,6 +47,10 @@ abstract class WorklistDatabase : RoomDatabase() {
     abstract fun serviceDao(): ServiceDao
     abstract fun userDao(): UserDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun companyDao(): CompanyDao
+    abstract fun companyMembershipDao(): CompanyMembershipDao
+    abstract fun paymentDao(): PaymentDao
+    abstract fun stockMovementDao(): StockMovementDao
 
     companion object {
         @Volatile
@@ -51,7 +63,7 @@ abstract class WorklistDatabase : RoomDatabase() {
                     WorklistDatabase::class.java,
                     "worklist_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2)
                     .build()
                 INSTANCE = instance
                 instance

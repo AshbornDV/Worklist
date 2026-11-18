@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worklist.data.model.Product
 import com.example.worklist.data.repository.ProductRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,9 +35,9 @@ class StockViewModel(
         _loading.value = true
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                _outOfStock.value = productRepository.getOutOfStockSync()
-                _critical.value = productRepository.getCriticalSync()
-                _low.value = productRepository.getLowSync()
+                _outOfStock.value = productRepository.getOutOfStockSync(CompanySession.companyId.value)
+                _critical.value = productRepository.getCriticalSync(CompanySession.companyId.value)
+                _low.value = productRepository.getLowSync(CompanySession.companyId.value)
             }
             _loading.value = false
         }

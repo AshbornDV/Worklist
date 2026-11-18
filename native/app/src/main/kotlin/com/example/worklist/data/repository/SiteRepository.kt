@@ -10,19 +10,19 @@ interface SiteRepository {
     suspend fun update(site: Site): Int
     suspend fun updateAll(sites: List<Site>): Int
     suspend fun delete(site: Site): Int
-    suspend fun deleteAll(): Int
-    fun getById(id: Int): Flow<Site?>
-    suspend fun getByIdSync(id: Int): Site?
-    fun getAll(): Flow<List<Site>>
-    suspend fun getAllSync(): List<Site>
-    fun getByStatus(status: String): Flow<List<Site>>
-    fun getActive(): Flow<List<Site>>
-    fun getUnsynced(): Flow<List<Site>>
-    suspend fun count(): Int
-    suspend fun countActive(): Int
-    suspend fun countCompleted(): Int
-    fun search(query: String): Flow<List<Site>>
-    fun searchByClient(query: String): Flow<List<Site>>
+    suspend fun deleteAll(companyId: Int)
+    fun getById(id: Int, companyId: Int): Flow<Site?>
+    suspend fun getByIdSync(id: Int, companyId: Int): Site?
+    fun getAll(companyId: Int): Flow<List<Site>>
+    suspend fun getAllSync(companyId: Int): List<Site>
+    fun getByStatus(status: String, companyId: Int): Flow<List<Site>>
+    fun getActive(companyId: Int): Flow<List<Site>>
+    fun getUnsynced(companyId: Int): Flow<List<Site>>
+    suspend fun count(companyId: Int): Int
+    suspend fun countActive(companyId: Int): Int
+    suspend fun countCompleted(companyId: Int): Int
+    fun search(query: String, companyId: Int): Flow<List<Site>>
+    fun searchByClient(query: String, companyId: Int): Flow<List<Site>>
     suspend fun upsert(site: Site): Long
 }
 
@@ -32,18 +32,18 @@ class SiteRepositoryImpl(private val dao: SiteDao) : SiteRepository {
     override suspend fun update(site: Site): Int = dao.update(site)
     override suspend fun updateAll(sites: List<Site>): Int = dao.updateAll(sites)
     override suspend fun delete(site: Site): Int = dao.delete(site)
-    override suspend fun deleteAll(): Int = dao.deleteAll()
-    override fun getById(id: Int): Flow<Site?> = dao.getById(id)
-    override suspend fun getByIdSync(id: Int): Site? = dao.getByIdSync(id)
-    override fun getAll(): Flow<List<Site>> = dao.getAll()
-    override suspend fun getAllSync(): List<Site> = dao.getAllSync()
-    override fun getByStatus(status: String): Flow<List<Site>> = dao.getByStatus(status)
-    override fun getActive(): Flow<List<Site>> = dao.getActive()
-    override fun getUnsynced(): Flow<List<Site>> = dao.getUnsynced()
-    override suspend fun count(): Int = dao.count()
-    override suspend fun countActive(): Int = dao.countActive()
-    override suspend fun countCompleted(): Int = dao.countCompleted()
-    override fun search(query: String): Flow<List<Site>> = dao.search(query)
-    override fun searchByClient(query: String): Flow<List<Site>> = dao.searchByClient(query)
+    override suspend fun deleteAll(companyId: Int) = dao.deleteAll(companyId)
+    override fun getById(id: Int, companyId: Int): Flow<Site?> = dao.getById(id, companyId)
+    override suspend fun getByIdSync(id: Int, companyId: Int): Site? = dao.getByIdSync(id, companyId)
+    override fun getAll(companyId: Int): Flow<List<Site>> = dao.getAll(companyId)
+    override suspend fun getAllSync(companyId: Int): List<Site> = dao.getAllSync(companyId)
+    override fun getByStatus(status: String, companyId: Int): Flow<List<Site>> = dao.getByStatus(status, companyId)
+    override fun getActive(companyId: Int): Flow<List<Site>> = dao.getActive(companyId)
+    override fun getUnsynced(companyId: Int): Flow<List<Site>> = dao.getUnsynced(companyId)
+    override suspend fun count(companyId: Int): Int = dao.count(companyId)
+    override suspend fun countActive(companyId: Int): Int = dao.countActive(companyId)
+    override suspend fun countCompleted(companyId: Int): Int = dao.countCompleted(companyId)
+    override fun search(query: String, companyId: Int): Flow<List<Site>> = dao.search(query, companyId)
+    override fun searchByClient(query: String, companyId: Int): Flow<List<Site>> = dao.searchByClient(query, companyId)
     override suspend fun upsert(site: Site): Long = dao.upsert(site)
 }

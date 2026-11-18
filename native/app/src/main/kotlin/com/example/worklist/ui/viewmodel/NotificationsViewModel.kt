@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.worklist.data.model.Notification
 import com.example.worklist.data.repository.NotificationRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,9 @@ class NotificationsViewModel(
         _loading.value = true
         viewModelScope.launch {
             // userId 1 default for local-only port; auth will populate this later.
-            _notifications.value = withContext(Dispatchers.IO) { notificationRepository.getByUserIdSync(1) }
+            val companyId = CompanySession.companyId.value
+            val userId = CompanySession.userId.value
+            _notifications.value = withContext(Dispatchers.IO) { notificationRepository.getByUserIdSync(userId, companyId) }
             _loading.value = false
         }
     }
@@ -48,7 +51,8 @@ class NotificationsViewModel(
             withContext(Dispatchers.IO) {
                 notificationRepository.insert(
                     Notification(
-                        userId = 1,
+                        companyId = CompanySession.companyId.value,
+                        userId = CompanySession.userId.value,
                         title = title,
                         body = body,
                         type = type,

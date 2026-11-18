@@ -13,16 +13,16 @@ interface PayrollRepository {
     suspend fun deleteAll(): Int
     fun getById(id: Int): Flow<PayrollRecord?>
     suspend fun getByIdSync(id: Int): PayrollRecord?
-    fun getByWorkerId(workerId: Int): Flow<List<PayrollRecord>>
-    fun getBySiteId(siteId: Int): Flow<List<PayrollRecord>>
-    fun getByPeriod(periodStart: String, periodEnd: String): Flow<List<PayrollRecord>>
-    suspend fun getByPeriodSync(periodStart: String, periodEnd: String): List<PayrollRecord>
-    suspend fun getAllSync(): List<PayrollRecord>
-    fun getByStatus(status: String): Flow<List<PayrollRecord>>
-    fun getUnsynced(): Flow<List<PayrollRecord>>
-    suspend fun countPending(): Int
-    suspend fun sumPaid(): Double
-    suspend fun sumAdvanceDeductions(): Double
+    fun getByWorkerId(workerId: Int, companyId: Int): Flow<List<PayrollRecord>>
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<PayrollRecord>>
+    fun getByPeriod(periodStart: String, periodEnd: String, companyId: Int): Flow<List<PayrollRecord>>
+    suspend fun getByPeriodSync(periodStart: String, periodEnd: String, companyId: Int): List<PayrollRecord>
+    suspend fun getAllSync(companyId: Int): List<PayrollRecord>
+    fun getByStatus(status: String, companyId: Int): Flow<List<PayrollRecord>>
+    fun getUnsynced(companyId: Int): Flow<List<PayrollRecord>>
+    suspend fun countPending(companyId: Int): Int
+    suspend fun sumPaid(companyId: Int): Double
+    suspend fun sumAdvanceDeductions(companyId: Int): Double
     suspend fun upsert(record: PayrollRecord): Long
 }
 
@@ -35,15 +35,15 @@ class PayrollRepositoryImpl(private val dao: PayrollDao) : PayrollRepository {
     override suspend fun deleteAll(): Int = dao.deleteAll()
     override fun getById(id: Int): Flow<PayrollRecord?> = dao.getById(id)
     override suspend fun getByIdSync(id: Int): PayrollRecord? = dao.getByIdSync(id)
-    override fun getByWorkerId(workerId: Int): Flow<List<PayrollRecord>> = dao.getByWorkerId(workerId)
-    override fun getBySiteId(siteId: Int): Flow<List<PayrollRecord>> = dao.getBySiteId(siteId)
-    override fun getByPeriod(periodStart: String, periodEnd: String): Flow<List<PayrollRecord>> = dao.getByPeriod(periodStart, periodEnd)
-    override suspend fun getByPeriodSync(periodStart: String, periodEnd: String): List<PayrollRecord> = dao.getByPeriodSync(periodStart, periodEnd)
-    override suspend fun getAllSync(): List<PayrollRecord> = dao.getAllSync()
-    override fun getByStatus(status: String): Flow<List<PayrollRecord>> = dao.getByStatus(status)
-    override fun getUnsynced(): Flow<List<PayrollRecord>> = dao.getUnsynced()
-    override suspend fun countPending(): Int = dao.countPending()
-    override suspend fun sumPaid(): Double = dao.sumPaid()
-    override suspend fun sumAdvanceDeductions(): Double = dao.sumAdvanceDeductions()
+    override fun getByWorkerId(workerId: Int, companyId: Int): Flow<List<PayrollRecord>> = dao.getByWorkerId(workerId,companyId)
+    override fun getBySiteId(siteId: Int, companyId: Int): Flow<List<PayrollRecord>> = dao.getBySiteId(siteId,companyId)
+    override fun getByPeriod(periodStart: String, periodEnd: String, companyId: Int): Flow<List<PayrollRecord>> = dao.getByPeriod(periodStart, periodEnd,companyId)
+    override suspend fun getByPeriodSync(periodStart: String, periodEnd: String, companyId: Int): List<PayrollRecord> = dao.getByPeriodSync(periodStart, periodEnd,companyId)
+    override suspend fun getAllSync(companyId: Int): List<PayrollRecord> = dao.getAllSync(companyId)
+    override fun getByStatus(status: String, companyId: Int): Flow<List<PayrollRecord>> = dao.getByStatus(status,companyId)
+    override fun getUnsynced(companyId: Int): Flow<List<PayrollRecord>> = dao.getUnsynced(companyId)
+    override suspend fun countPending(companyId: Int): Int = dao.countPending(companyId)
+    override suspend fun sumPaid(companyId: Int): Double = dao.sumPaid(companyId)
+    override suspend fun sumAdvanceDeductions(companyId: Int): Double = dao.sumAdvanceDeductions(companyId)
     override suspend fun upsert(record: PayrollRecord): Long = dao.upsert(record)
 }

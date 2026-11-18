@@ -6,6 +6,7 @@ import com.example.worklist.data.model.Attendance
 import com.example.worklist.data.model.Worker
 import com.example.worklist.data.repository.AttendanceRepository
 import com.example.worklist.data.repository.WorkerRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,8 +44,8 @@ class AttendanceViewModel(
         _loading.value = true
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                _workers.value = workerRepository.getAllSync()
-                _attendance.value = attendanceRepository.getBySiteAndDateSync(0, _selectedDate.value)
+                _workers.value = workerRepository.getAllSync(CompanySession.companyId.value)
+                _attendance.value = attendanceRepository.getBySiteAndDateSync(0, _selectedDate.value, CompanySession.companyId.value)
             }
             _loading.value = false
         }
@@ -53,7 +54,7 @@ class AttendanceViewModel(
     fun markAttendance(workerId: Int, type: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val existing = attendanceRepository.getByWorkerAndDateSync(workerId, _selectedDate.value)
+                val existing = attendanceRepository.getByWorkerAndDateSync(workerId, _selectedDate.value, CompanySession.companyId.value)
                 if (existing != null) {
                     existing.type = type
                     attendanceRepository.update(existing)

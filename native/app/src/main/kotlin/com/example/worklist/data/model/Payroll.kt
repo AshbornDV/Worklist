@@ -8,7 +8,11 @@ import androidx.room.Index
 
 @Entity(
     tableName = "payroll_records",
-    indices = [Index(value = ["worker_id", "period_start", "period_end"]), Index(value = ["site_id"])]
+    indices = [
+        Index(value = ["worker_id", "period_start", "period_end"]),
+        Index(value = ["site_id"]),
+        Index(value = ["company_id"])
+    ]
 )
 
 data class PayrollRecord(
@@ -62,7 +66,10 @@ data class PayrollRecord(
     var updatedAt: String = "",
 
     @ColumnInfo(name = "synced")
-    var synced: Boolean = false
+    var synced: Boolean = false,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0
 ) {
     companion object {
         const val STATUS_PENDING = "pending"

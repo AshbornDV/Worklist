@@ -8,7 +8,11 @@ import androidx.room.Index
 
 @Entity(
     tableName = "attendance",
-    indices = [Index(value = ["worker_id", "date"]), Index(value = ["site_id", "date"])]
+    indices = [
+        Index(value = ["worker_id", "date"]),
+        Index(value = ["site_id", "date"]),
+        Index(value = ["company_id"])
+    ]
 )
 
 data class Attendance(
@@ -53,7 +57,10 @@ data class Attendance(
     var updatedAt: String = "",
 
     @ColumnInfo(name = "synced")
-    var synced: Boolean = false
+    var synced: Boolean = false,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0
 ) {
     companion object {
         const val TYPE_FULL = "full"

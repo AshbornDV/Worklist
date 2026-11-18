@@ -27,38 +27,41 @@ interface UserDao {
     @Delete
     fun delete(user: User): Int
 
-    @Query("DELETE FROM users")
-    fun deleteAll(): Int
+    @Query("DELETE FROM users WHERE company_id = :companyId")
+    fun deleteAll(companyId: Int)
 
-    @Query("SELECT * FROM users WHERE id = :id")
-    fun getById(id: Int): Flow<User?>
+    @Query("SELECT * FROM users WHERE id = :id AND company_id = :companyId")
+    fun getById(id: Int, companyId: Int): Flow<User?>
 
-    @Query("SELECT * FROM users WHERE id = :id")
-    fun getByIdSync(id: Int): User?
+    @Query("SELECT * FROM users WHERE id = :id AND company_id = :companyId")
+    fun getByIdSync(id: Int, companyId: Int): User?
 
-    @Query("SELECT * FROM users WHERE username = :username")
-    fun getByUsername(username: String): Flow<User?>
+    @Query("SELECT * FROM users WHERE username = :username AND company_id = :companyId")
+    fun getByUsername(username: String, companyId: Int): Flow<User?>
 
-    @Query("SELECT * FROM users WHERE username = :username")
-    fun getByUsernameSync(username: String): User?
+    @Query("SELECT * FROM users WHERE username = :username AND company_id = :companyId")
+    fun getByUsernameSync(username: String, companyId: Int): User?
 
-    @Query("SELECT * FROM users WHERE email = :email")
-    fun getByEmail(email: String): Flow<User?>
+    @Query("SELECT * FROM users WHERE email = :email AND company_id = :companyId")
+    fun getByEmail(email: String, companyId: Int): Flow<User?>
 
-    @Query("SELECT * FROM users WHERE email = :email")
-    fun getByEmailSync(email: String): User?
+    @Query("SELECT * FROM users WHERE email = :email AND company_id = :companyId")
+    fun getByEmailSync(email: String, companyId: Int): User?
 
-    @Query("SELECT * FROM users WHERE role = :role ORDER BY username ASC")
-    fun getByRole(role: String): Flow<List<User>>
+    @Query("SELECT * FROM users WHERE role = :role AND company_id = :companyId ORDER BY username ASC")
+    fun getByRole(role: String, companyId: Int): Flow<List<User>>
 
-    @Query("SELECT * FROM users WHERE is_active = 1 ORDER BY username ASC")
-    fun getActive(): Flow<List<User>>
+    @Query("SELECT * FROM users WHERE is_active = 1 AND company_id = :companyId ORDER BY username ASC")
+    fun getActive(companyId: Int): Flow<List<User>>
 
-    @Query("SELECT * FROM users ORDER BY username ASC")
-    fun getAll(): Flow<List<User>>
+    @Query("SELECT * FROM users WHERE company_id = :companyId ORDER BY username ASC")
+    fun getAll(companyId: Int): Flow<List<User>>
 
-    @Query("SELECT * FROM users WHERE synced = 0 ORDER BY updated_at ASC")
-    fun getUnsynced(): Flow<List<User>>
+    @Query("SELECT * FROM users WHERE synced = 0 AND company_id = :companyId ORDER BY updated_at ASC")
+    fun getUnsynced(companyId: Int): Flow<List<User>>
+
+    @Query("SELECT * FROM users WHERE company_id = :companyId ORDER BY username ASC")
+    fun getAllSync(companyId: Int): List<User>
 
     @Transaction
     fun upsert(user: User): Long = insert(user)

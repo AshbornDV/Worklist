@@ -27,35 +27,35 @@ interface ServiceDao {
     @Delete
     fun delete(record: ServiceRecord): Int
 
-    @Query("DELETE FROM service_records")
-    fun deleteAll(): Int
+    @Query("DELETE FROM service_records WHERE company_id = :companyId")
+    fun deleteAll(companyId: Int)
 
-    @Query("SELECT * FROM service_records WHERE id = :id")
-    fun getById(id: Int): Flow<ServiceRecord?>
+    @Query("SELECT * FROM service_records WHERE id = :id AND company_id = :companyId")
+    fun getById(id: Int, companyId: Int): Flow<ServiceRecord?>
 
-    @Query("SELECT * FROM service_records WHERE id = :id")
-    fun getByIdSync(id: Int): ServiceRecord?
+    @Query("SELECT * FROM service_records WHERE id = :id AND company_id = :companyId")
+    fun getByIdSync(id: Int, companyId: Int): ServiceRecord?
 
-    @Query("SELECT * FROM service_records WHERE site_id = :siteId ORDER BY date DESC")
-    fun getBySiteId(siteId: Int): Flow<List<ServiceRecord>>
+    @Query("SELECT * FROM service_records WHERE site_id = :siteId AND company_id = :companyId ORDER BY date DESC")
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<ServiceRecord>>
 
-    @Query("SELECT * FROM service_records WHERE worker_id = :workerId ORDER BY date DESC")
-    fun getByWorkerId(workerId: Int): Flow<List<ServiceRecord>>
+    @Query("SELECT * FROM service_records WHERE worker_id = :workerId AND company_id = :companyId ORDER BY date DESC")
+    fun getByWorkerId(workerId: Int, companyId: Int): Flow<List<ServiceRecord>>
 
-    @Query("SELECT * FROM service_records WHERE status = :status ORDER BY date DESC")
-    fun getByStatus(status: String): Flow<List<ServiceRecord>>
+    @Query("SELECT * FROM service_records WHERE status = :status AND company_id = :companyId ORDER BY date DESC")
+    fun getByStatus(status: String, companyId: Int): Flow<List<ServiceRecord>>
 
-    @Query("SELECT * FROM service_records ORDER BY date DESC")
-    fun getAll(): Flow<List<ServiceRecord>>
+    @Query("SELECT * FROM service_records WHERE company_id = :companyId ORDER BY date DESC")
+    fun getAll(companyId: Int): Flow<List<ServiceRecord>>
 
-    @Query("SELECT * FROM service_records ORDER BY date DESC")
-    fun getAllSync(): List<ServiceRecord>
+    @Query("SELECT * FROM service_records WHERE company_id = :companyId ORDER BY date DESC")
+    fun getAllSync(companyId: Int): List<ServiceRecord>
 
-    @Query("SELECT * FROM service_records WHERE synced = 0 ORDER BY created_at ASC")
-    fun getUnsynced(): Flow<List<ServiceRecord>>
+    @Query("SELECT * FROM service_records WHERE synced = 0 AND company_id = :companyId ORDER BY created_at ASC")
+    fun getUnsynced(companyId: Int): Flow<List<ServiceRecord>>
 
-    @Query("SELECT SUM(total_price) FROM service_records WHERE status = 'completed'")
-    fun sumCompleted(): Double
+    @Query("SELECT SUM(total_price) FROM service_records WHERE status = 'completed' AND company_id = :companyId")
+    fun sumCompleted(companyId: Int): Double
 
     @Transaction
     fun upsert(record: ServiceRecord): Long = insert(record)

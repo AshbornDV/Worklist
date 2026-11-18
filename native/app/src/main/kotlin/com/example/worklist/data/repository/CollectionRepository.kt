@@ -10,18 +10,18 @@ interface CollectionRepository {
     suspend fun update(collection: Collection): Int
     suspend fun updateAll(collections: List<Collection>): Int
     suspend fun delete(collection: Collection): Int
-    suspend fun deleteAll(): Int
-    fun getById(id: Int): Flow<Collection?>
-    suspend fun getByIdSync(id: Int): Collection?
-    fun getBySiteId(siteId: Int): Flow<List<Collection>>
-    fun getByCustomerId(customerId: Int): Flow<List<Collection>>
-    fun getByStatus(status: String): Flow<List<Collection>>
-    fun getAll(): Flow<List<Collection>>
-    suspend fun getAllSync(): List<Collection>
-    fun getUnsynced(): Flow<List<Collection>>
-    suspend fun countPending(): Int
-    suspend fun countOverdue(): Int
-    suspend fun sumOutstanding(): Double
+    suspend fun deleteAll(companyId: Int)
+    fun getById(id: Int, companyId: Int): Flow<Collection?>
+    suspend fun getByIdSync(id: Int, companyId: Int): Collection?
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Collection>>
+    fun getByCustomerId(customerId: Int, companyId: Int): Flow<List<Collection>>
+    fun getByStatus(status: String, companyId: Int): Flow<List<Collection>>
+    fun getAll(companyId: Int): Flow<List<Collection>>
+    suspend fun getAllSync(companyId: Int): List<Collection>
+    fun getUnsynced(companyId: Int): Flow<List<Collection>>
+    suspend fun countPending(companyId: Int): Int
+    suspend fun countOverdue(companyId: Int): Int
+    suspend fun sumOutstanding(companyId: Int): Double
     suspend fun upsert(collection: Collection): Long
 }
 
@@ -31,17 +31,17 @@ class CollectionRepositoryImpl(private val dao: CollectionDao) : CollectionRepos
     override suspend fun update(collection: Collection): Int = dao.update(collection)
     override suspend fun updateAll(collections: List<Collection>): Int = dao.updateAll(collections)
     override suspend fun delete(collection: Collection): Int = dao.delete(collection)
-    override suspend fun deleteAll(): Int = dao.deleteAll()
-    override fun getById(id: Int): Flow<Collection?> = dao.getById(id)
-    override suspend fun getByIdSync(id: Int): Collection? = dao.getByIdSync(id)
-    override fun getBySiteId(siteId: Int): Flow<List<Collection>> = dao.getBySiteId(siteId)
-    override fun getByCustomerId(customerId: Int): Flow<List<Collection>> = dao.getByCustomerId(customerId)
-    override fun getByStatus(status: String): Flow<List<Collection>> = dao.getByStatus(status)
-    override fun getAll(): Flow<List<Collection>> = dao.getAll()
-    override suspend fun getAllSync(): List<Collection> = dao.getAllSync()
-    override fun getUnsynced(): Flow<List<Collection>> = dao.getUnsynced()
-    override suspend fun countPending(): Int = dao.countPending()
-    override suspend fun countOverdue(): Int = dao.countOverdue()
-    override suspend fun sumOutstanding(): Double = dao.sumOutstanding()
+    override suspend fun deleteAll(companyId: Int) = dao.deleteAll(companyId)
+    override fun getById(id: Int, companyId: Int): Flow<Collection?> = dao.getById(id, companyId)
+    override suspend fun getByIdSync(id: Int, companyId: Int): Collection? = dao.getByIdSync(id, companyId)
+    override fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Collection>> = dao.getBySiteId(siteId, companyId)
+    override fun getByCustomerId(customerId: Int, companyId: Int): Flow<List<Collection>> = dao.getByCustomerId(customerId, companyId)
+    override fun getByStatus(status: String, companyId: Int): Flow<List<Collection>> = dao.getByStatus(status, companyId)
+    override fun getAll(companyId: Int): Flow<List<Collection>> = dao.getAll(companyId)
+    override suspend fun getAllSync(companyId: Int): List<Collection> = dao.getAllSync(companyId)
+    override fun getUnsynced(companyId: Int): Flow<List<Collection>> = dao.getUnsynced(companyId)
+    override suspend fun countPending(companyId: Int): Int = dao.countPending(companyId)
+    override suspend fun countOverdue(companyId: Int): Int = dao.countOverdue(companyId)
+    override suspend fun sumOutstanding(companyId: Int): Double = dao.sumOutstanding(companyId)
     override suspend fun upsert(collection: Collection): Long = dao.upsert(collection)
 }

@@ -10,22 +10,22 @@ interface WorkerRepository {
     suspend fun update(worker: Worker): Int
     suspend fun updateAll(workers: List<Worker>): Int
     suspend fun delete(worker: Worker): Int
-    suspend fun deleteAll(): Int
-    fun getById(id: Int): Flow<Worker?>
-    suspend fun getByIdSync(id: Int): Worker?
-    fun getByUserId(userId: Int): Flow<Worker?>
-    fun getBySiteId(siteId: Int): Flow<List<Worker>>
-    suspend fun getBySiteIdSync(siteId: Int): List<Worker>
-    fun getAll(): Flow<List<Worker>>
-    suspend fun getAllSync(): List<Worker>
-    fun getByStatus(status: String): Flow<List<Worker>>
-    fun getActive(): Flow<List<Worker>>
-    fun getUnsynced(): Flow<List<Worker>>
-    suspend fun count(): Int
-    suspend fun countActive(): Int
-    suspend fun countActiveBySite(siteId: Int): Int
-    fun search(query: String): Flow<List<Worker>>
-    fun searchByPhone(query: String): Flow<List<Worker>>
+    suspend fun deleteAll(companyId: Int)
+    fun getById(id: Int, companyId: Int): Flow<Worker?>
+    suspend fun getByIdSync(id: Int, companyId: Int): Worker?
+    fun getByUserId(userId: Int, companyId: Int): Flow<Worker?>
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Worker>>
+    suspend fun getBySiteIdSync(siteId: Int, companyId: Int): List<Worker>
+    fun getAll(companyId: Int): Flow<List<Worker>>
+    suspend fun getAllSync(companyId: Int): List<Worker>
+    fun getByStatus(status: String, companyId: Int): Flow<List<Worker>>
+    fun getActive(companyId: Int): Flow<List<Worker>>
+    fun getUnsynced(companyId: Int): Flow<List<Worker>>
+    suspend fun count(companyId: Int): Int
+    suspend fun countActive(companyId: Int): Int
+    suspend fun countActiveBySite(siteId: Int, companyId: Int): Int
+    fun search(query: String, companyId: Int): Flow<List<Worker>>
+    fun searchByPhone(query: String, companyId: Int): Flow<List<Worker>>
     suspend fun upsert(worker: Worker): Long
 }
 
@@ -35,21 +35,21 @@ class WorkerRepositoryImpl(private val dao: WorkerDao) : WorkerRepository {
     override suspend fun update(worker: Worker): Int = dao.update(worker)
     override suspend fun updateAll(workers: List<Worker>): Int = dao.updateAll(workers)
     override suspend fun delete(worker: Worker): Int = dao.delete(worker)
-    override suspend fun deleteAll(): Int = dao.deleteAll()
-    override fun getById(id: Int): Flow<Worker?> = dao.getById(id)
-    override suspend fun getByIdSync(id: Int): Worker? = dao.getByIdSync(id)
-    override fun getByUserId(userId: Int): Flow<Worker?> = dao.getByUserId(userId)
-    override fun getBySiteId(siteId: Int): Flow<List<Worker>> = dao.getBySiteId(siteId)
-    override suspend fun getBySiteIdSync(siteId: Int): List<Worker> = dao.getBySiteIdSync(siteId)
-    override fun getAll(): Flow<List<Worker>> = dao.getAll()
-    override suspend fun getAllSync(): List<Worker> = dao.getAllSync()
-    override fun getByStatus(status: String): Flow<List<Worker>> = dao.getByStatus(status)
-    override fun getActive(): Flow<List<Worker>> = dao.getActive()
-    override fun getUnsynced(): Flow<List<Worker>> = dao.getUnsynced()
-    override suspend fun count(): Int = dao.count()
-    override suspend fun countActive(): Int = dao.countActive()
-    override suspend fun countActiveBySite(siteId: Int): Int = dao.countActiveBySite(siteId)
-    override fun search(query: String): Flow<List<Worker>> = dao.search(query)
-    override fun searchByPhone(query: String): Flow<List<Worker>> = dao.searchByPhone(query)
+    override suspend fun deleteAll(companyId: Int) = dao.deleteAll(companyId)
+    override fun getById(id: Int, companyId: Int): Flow<Worker?> = dao.getById(id, companyId)
+    override suspend fun getByIdSync(id: Int, companyId: Int): Worker? = dao.getByIdSync(id, companyId)
+    override fun getByUserId(userId: Int, companyId: Int): Flow<Worker?> = dao.getByUserId(userId, companyId)
+    override fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Worker>> = dao.getBySiteId(siteId, companyId)
+    override suspend fun getBySiteIdSync(siteId: Int, companyId: Int): List<Worker> = dao.getBySiteIdSync(siteId, companyId)
+    override fun getAll(companyId: Int): Flow<List<Worker>> = dao.getAll(companyId)
+    override suspend fun getAllSync(companyId: Int): List<Worker> = dao.getAllSync(companyId)
+    override fun getByStatus(status: String, companyId: Int): Flow<List<Worker>> = dao.getByStatus(status, companyId)
+    override fun getActive(companyId: Int): Flow<List<Worker>> = dao.getActive(companyId)
+    override fun getUnsynced(companyId: Int): Flow<List<Worker>> = dao.getUnsynced(companyId)
+    override suspend fun count(companyId: Int): Int = dao.count(companyId)
+    override suspend fun countActive(companyId: Int): Int = dao.countActive(companyId)
+    override suspend fun countActiveBySite(siteId: Int, companyId: Int): Int = dao.countActiveBySite(siteId, companyId)
+    override fun search(query: String, companyId: Int): Flow<List<Worker>> = dao.search(query, companyId)
+    override fun searchByPhone(query: String, companyId: Int): Flow<List<Worker>> = dao.searchByPhone(query, companyId)
     override suspend fun upsert(worker: Worker): Long = dao.upsert(worker)
 }

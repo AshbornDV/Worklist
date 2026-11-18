@@ -14,6 +14,7 @@ import com.example.worklist.data.repository.ProductRepository
 import com.example.worklist.data.repository.AttendanceRepository
 import com.example.worklist.data.repository.PayrollRepository
 import com.example.worklist.data.repository.CollectionRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,30 +81,31 @@ class DashboardViewModel(
         try {
             val today = LocalDate.now().toString()
 
-            val sites = siteRepository.getAllSync()
+            val sites = siteRepository.getAllSync(CompanySession.companyId.value)
             val activeSites = sites.count { it.status == "active" }
             val completedSites = sites.count { it.status == "completed" }
 
-            val workers = workerRepository.getAllSync()
+            val workers = workerRepository.getAllSync(CompanySession.companyId.value)
             val activeWorkers = workers.size
 
-            val attendanceToday = attendanceRepository.getBySiteAndDateSync(0, today)
+            val attendanceToday = attendanceRepository.getBySiteAndDateSync(0, today, CompanySession.companyId.value)
             val present = attendanceToday.count { it.type == "full" }
             val half = attendanceToday.count { it.type == "half" }
             val absent = attendanceToday.count { it.type == "absent" }
 
-            val products = productRepository.getAllSync()
+            val products = productRepository.getAllSync(CompanySession.companyId.value)
             val totalProducts = products.size
             val outOfStock = products.count { it.isOutOfStock() }
             val critical = products.count { it.isCritical() }
             val low = products.count { it.isLow() }
 
-            val collections = collectionRepository.getAllSync()
+            val collections = collectionRepository.getAllSync(CompanySession.companyId.value)
             val pendingPayments = collections.filter { it.status == "pending" || it.status == "overdue" }
                 .sumOf { it.amount - it.paidAmount }
             val totalCost = collections.sumOf { it.amount }
 
-            val stockAlerts = productRepository.getOutOfStockSync() + productRepository.getCriticalSync() + productRepository.getLowSync()
+            val companyId = CompanySession.companyId.value
+            val stockAlerts = productRepository.getOutOfStockSync(companyId) + productRepository.getCriticalSync(companyId) + productRepository.getLowSync(companyId)
 
             _stats.value = DashboardStats(
                 activeSites = activeSites,
@@ -125,7 +127,8 @@ class DashboardViewModel(
             _stockAlerts.value = stockAlerts
             _attendanceChartData.value = attendanceRepository.getByDateRangeSync(
                 LocalDate.now().minusDays(30).toString(),
-                LocalDate.now().toString()
+                LocalDate.now().toString(),
+                CompanySession.companyId.value
             )
             _siteProgressChartData.value = sites.take(10)
             _materialUsageChartData.value = products.take(10)

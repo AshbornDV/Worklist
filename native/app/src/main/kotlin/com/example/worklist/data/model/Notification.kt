@@ -8,13 +8,21 @@ import androidx.room.Index
 
 @Entity(
     tableName = "notifications",
-    indices = [Index(value = ["user_id"]), Index(value = ["read"]), Index(value = ["type"])]
+    indices = [
+        Index(value = ["company_id"]),
+        Index(value = ["user_id"]),
+        Index(value = ["read"]),
+        Index(value = ["type"])
+    ]
 )
 
 data class Notification(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     var id: Int = 0,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0,
 
     @ColumnInfo(name = "user_id")
     var userId: Int = 0,

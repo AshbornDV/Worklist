@@ -10,27 +10,27 @@ interface ProductRepository {
     suspend fun update(product: Product): Int
     suspend fun updateAll(products: List<Product>): Int
     suspend fun delete(product: Product): Int
-    suspend fun deleteAll(): Int
-    fun getById(id: Int): Flow<Product?>
-    suspend fun getByIdSync(id: Int): Product?
-    fun getBySiteId(siteId: Int): Flow<List<Product>>
-    suspend fun getBySiteIdSync(siteId: Int): List<Product>
-    fun getAll(): Flow<List<Product>>
-    suspend fun getAllSync(): List<Product>
-    fun getByCategory(category: String): Flow<List<Product>>
-    fun getUnsynced(): Flow<List<Product>>
-    suspend fun count(): Int
-    suspend fun countOutOfStock(): Int
-    suspend fun countCritical(): Int
-    suspend fun countLow(): Int
-    fun getOutOfStock(): Flow<List<Product>>
-    suspend fun getOutOfStockSync(): List<Product>
-    fun getCritical(): Flow<List<Product>>
-    suspend fun getCriticalSync(): List<Product>
-    fun getLow(): Flow<List<Product>>
-    suspend fun getLowSync(): List<Product>
-    fun search(query: String): Flow<List<Product>>
-    suspend fun getTotalInventoryValue(): Double
+    suspend fun deleteAll(companyId: Int)
+    fun getById(id: Int, companyId: Int): Flow<Product?>
+    suspend fun getByIdSync(id: Int, companyId: Int): Product?
+    fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Product>>
+    suspend fun getBySiteIdSync(siteId: Int, companyId: Int): List<Product>
+    fun getAll(companyId: Int): Flow<List<Product>>
+    suspend fun getAllSync(companyId: Int): List<Product>
+    fun getByCategory(category: String, companyId: Int): Flow<List<Product>>
+    fun getUnsynced(companyId: Int): Flow<List<Product>>
+    suspend fun count(companyId: Int): Int
+    suspend fun countOutOfStock(companyId: Int): Int
+    suspend fun countCritical(companyId: Int): Int
+    suspend fun countLow(companyId: Int): Int
+    fun getOutOfStock(companyId: Int): Flow<List<Product>>
+    suspend fun getOutOfStockSync(companyId: Int): List<Product>
+    fun getCritical(companyId: Int): Flow<List<Product>>
+    suspend fun getCriticalSync(companyId: Int): List<Product>
+    fun getLow(companyId: Int): Flow<List<Product>>
+    suspend fun getLowSync(companyId: Int): List<Product>
+    fun search(query: String, companyId: Int): Flow<List<Product>>
+    suspend fun getTotalInventoryValue(companyId: Int): Double
     suspend fun upsert(product: Product): Long
 }
 
@@ -40,26 +40,26 @@ class ProductRepositoryImpl(private val dao: ProductDao) : ProductRepository {
     override suspend fun update(product: Product): Int = dao.update(product)
     override suspend fun updateAll(products: List<Product>): Int = dao.updateAll(products)
     override suspend fun delete(product: Product): Int = dao.delete(product)
-    override suspend fun deleteAll(): Int = dao.deleteAll()
-    override fun getById(id: Int): Flow<Product?> = dao.getById(id)
-    override suspend fun getByIdSync(id: Int): Product? = dao.getByIdSync(id)
-    override fun getBySiteId(siteId: Int): Flow<List<Product>> = dao.getBySiteId(siteId)
-    override suspend fun getBySiteIdSync(siteId: Int): List<Product> = dao.getBySiteIdSync(siteId)
-    override fun getAll(): Flow<List<Product>> = dao.getAll()
-    override suspend fun getAllSync(): List<Product> = dao.getAllSync()
-    override fun getByCategory(category: String): Flow<List<Product>> = dao.getByCategory(category)
-    override fun getUnsynced(): Flow<List<Product>> = dao.getUnsynced()
-    override suspend fun count(): Int = dao.count()
-    override suspend fun countOutOfStock(): Int = dao.countOutOfStock()
-    override suspend fun countCritical(): Int = dao.countCritical()
-    override suspend fun countLow(): Int = dao.countLow()
-    override fun getOutOfStock(): Flow<List<Product>> = dao.getOutOfStock()
-    override suspend fun getOutOfStockSync(): List<Product> = dao.getOutOfStockSync()
-    override fun getCritical(): Flow<List<Product>> = dao.getCritical()
-    override suspend fun getCriticalSync(): List<Product> = dao.getCriticalSync()
-    override fun getLow(): Flow<List<Product>> = dao.getLow()
-    override suspend fun getLowSync(): List<Product> = dao.getLowSync()
-    override fun search(query: String): Flow<List<Product>> = dao.search(query)
-    override suspend fun getTotalInventoryValue(): Double = dao.getTotalInventoryValue()
+    override suspend fun deleteAll(companyId: Int) = dao.deleteAll(companyId)
+    override fun getById(id: Int, companyId: Int): Flow<Product?> = dao.getById(id, companyId)
+    override suspend fun getByIdSync(id: Int, companyId: Int): Product? = dao.getByIdSync(id, companyId)
+    override fun getBySiteId(siteId: Int, companyId: Int): Flow<List<Product>> = dao.getBySiteId(siteId, companyId)
+    override suspend fun getBySiteIdSync(siteId: Int, companyId: Int): List<Product> = dao.getBySiteIdSync(siteId, companyId)
+    override fun getAll(companyId: Int): Flow<List<Product>> = dao.getAll(companyId)
+    override suspend fun getAllSync(companyId: Int): List<Product> = dao.getAllSync(companyId)
+    override fun getByCategory(category: String, companyId: Int): Flow<List<Product>> = dao.getByCategory(category, companyId)
+    override fun getUnsynced(companyId: Int): Flow<List<Product>> = dao.getUnsynced(companyId)
+    override suspend fun count(companyId: Int): Int = dao.count(companyId)
+    override suspend fun countOutOfStock(companyId: Int): Int = dao.countOutOfStock(companyId)
+    override suspend fun countCritical(companyId: Int): Int = dao.countCritical(companyId)
+    override suspend fun countLow(companyId: Int): Int = dao.countLow(companyId)
+    override fun getOutOfStock(companyId: Int): Flow<List<Product>> = dao.getOutOfStock(companyId)
+    override suspend fun getOutOfStockSync(companyId: Int): List<Product> = dao.getOutOfStockSync(companyId)
+    override fun getCritical(companyId: Int): Flow<List<Product>> = dao.getCritical(companyId)
+    override suspend fun getCriticalSync(companyId: Int): List<Product> = dao.getCriticalSync(companyId)
+    override fun getLow(companyId: Int): Flow<List<Product>> = dao.getLow(companyId)
+    override suspend fun getLowSync(companyId: Int): List<Product> = dao.getLowSync(companyId)
+    override fun search(query: String, companyId: Int): Flow<List<Product>> = dao.search(query, companyId)
+    override suspend fun getTotalInventoryValue(companyId: Int): Double = dao.getTotalInventoryValue(companyId)
     override suspend fun upsert(product: Product): Long = dao.upsert(product)
 }

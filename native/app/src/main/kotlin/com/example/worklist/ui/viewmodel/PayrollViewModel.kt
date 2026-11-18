@@ -6,6 +6,7 @@ import com.example.worklist.data.model.PayrollRecord
 import com.example.worklist.data.model.Worker
 import com.example.worklist.data.repository.PayrollRepository
 import com.example.worklist.data.repository.WorkerRepository
+import com.example.worklist.data.session.CompanySession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,8 +35,8 @@ class PayrollViewModel(
         _loading.value = true
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                _workers.value = workerRepository.getAllSync()
-                _records.value = payrollRepository.getAllSync()
+                _workers.value = workerRepository.getAllSync(CompanySession.companyId.value)
+                _records.value = payrollRepository.getAllSync(CompanySession.companyId.value)
             }
             _loading.value = false
         }

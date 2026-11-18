@@ -70,7 +70,28 @@ data class Site(
     var updatedAt: String = "",
 
     @ColumnInfo(name = "synced")
-    var synced: Boolean = false
+    var synced: Boolean = false,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0,
+
+    @ColumnInfo(name = "area_estimate")
+    var areaEstimate: Double = 0.0,
+
+    @ColumnInfo(name = "area_final")
+    var areaFinal: Double = 0.0,
+
+    @ColumnInfo(name = "budget_estimate")
+    var budgetEstimate: Double = 0.0,
+
+    @ColumnInfo(name = "budget_actual")
+    var budgetActual: Double = 0.0,
+
+    @ColumnInfo(name = "satisfaction_score")
+    var satisfactionScore: Double = 0.0,
+
+    @ColumnInfo(name = "final_work_days")
+    var finalWorkDays: Int = 0
 ) {
     companion object {
         const val STATUS_ACTIVE = "active"

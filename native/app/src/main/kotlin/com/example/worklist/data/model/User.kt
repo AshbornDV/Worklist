@@ -43,7 +43,10 @@ data class User(
     var updatedAt: String = "",
 
     @ColumnInfo(name = "synced")
-    var synced: Boolean = false
+    var synced: Boolean = false,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0
 ) {
     companion object {
         const val ROLE_ADMIN = "admin"

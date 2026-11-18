@@ -8,13 +8,21 @@ import androidx.room.Index
 
 @Entity(
     tableName = "collections",
-    indices = [Index(value = ["site_id"]), Index(value = ["customer_id"]), Index(value = ["status"])]
+    indices = [
+        Index(value = ["company_id"]),
+        Index(value = ["site_id"]),
+        Index(value = ["customer_id"]),
+        Index(value = ["status"])
+    ]
 )
 
 data class Collection(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     var id: Int = 0,
+
+    @ColumnInfo(name = "company_id")
+    var companyId: Int = 0,
 
     @ColumnInfo(name = "site_id")
     var siteId: Int = 0,
