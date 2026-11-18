@@ -1,14 +1,19 @@
 [versions]
 agp = "9.3.1"
-kotlin = "2.4.20"
+kotlin = "2.3.20"
 googleServices = "4.4.2"
 foojayResolver = "0.10.0"
 composeBom = "2025.01.01"
 activityCompose = "1.9.3"
 navigationCompose = "2.8.9"
 lifecycleRuntimeCompose = "2.8.7"
+room = "2.5.2"
 serializationJson = "1.11.0"
 junit = "4.13.2"
+coroutines = "1.9.0"
+viewModelCompose = "2.8.7"
+materialIconsExtended = "1.7.8"
+ksp = "2.3.14"
 
 [libraries]
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
@@ -18,6 +23,12 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serializationJson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "viewModelCompose" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -26,3 +37,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 foojay-resolver = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojayResolver" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

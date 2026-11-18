@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.gms.google-services")
+    id("kotlin-kapt")
 }
 
 android {
@@ -25,6 +26,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    kapt {
+        javacOptions {
+            option("-Xlint:-options")
+        }
+    }
 }
 
 kotlin {
@@ -38,8 +45,15 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.material.icons.extended)
     implementation(project(":core:designsystem"))
+
+    kapt(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
 }

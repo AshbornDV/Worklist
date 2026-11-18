@@ -37,6 +37,7 @@ private enum class WorklistTab(
 }
 
 /** Root composable: contract theme + responsive 5-tab shell. */
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun WorklistApp() {
     WorklistTheme(darkTheme = isSystemInDarkTheme()) {
@@ -53,6 +54,7 @@ fun WorklistApp() {
     }
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 private fun ResponsiveShell(
     selectedTab: WorklistTab,
@@ -80,6 +82,7 @@ private fun ResponsiveShell(
     }
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 private fun BottomTabs(
     selectedTab: WorklistTab,
@@ -97,6 +100,7 @@ private fun BottomTabs(
     }
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 private fun NavRail(
     selectedTab: WorklistTab,
