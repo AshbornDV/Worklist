@@ -1,0 +1,17 @@
+// file_picker 11.x skips applying org.jetbrains.kotlin.android when it detects
+// AGP 9+, because it assumes AGP's built-in Kotlin is enabled. Flutter 3.50
+// templates keep android.builtInKotlin=false (built-in Kotlin conflicts with
+// plugins such as workmanager_android), so the plugin's Kotlin sources would
+// never compile and GeneratedPluginRegistrant fails with "cannot find symbol".
+//
+// Apply the Kotlin plugin to that module only, and match the Java target so
+// Kotlin/Javac agree on JVM 17.
+subprojects { p ->
+    if (p.name != 'file_picker') {
+        return
+    }
+    p.plugins.withId('com.android.library') {
+        p.pluginManager.apply('org.jetbrains.kotlin.android')
+        p.extensions.getByName('android').kotlinOptions { jvmTarget = '17' }
+    }
+}
