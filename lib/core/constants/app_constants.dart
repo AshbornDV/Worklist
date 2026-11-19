@@ -4,7 +4,14 @@ class AppConstants {
   static const String appName = 'Worklist';
   static const String appVersion = '1.0.0';
 
-  // Site statuses
+  // Site sizes (collection reminder timing)
+  static const String siteSizeSmall = 'small';
+  static const String siteSizeLarge = 'large';
+
+  static const List<String> siteSizes = [siteSizeSmall, siteSizeLarge];
+
+  static const int smallSiteReminderDays = 2;
+  static const int largeSiteReminderDays = 4;
   static const String siteStatusActive = 'active';
   static const String siteStatusCompleted = 'completed';
   static const String siteStatusPending = 'pending';

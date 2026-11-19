@@ -1,0 +1,4 @@
+map-tokens: 512
+cache-prompts: true
+read:
+  - AGENTS.md

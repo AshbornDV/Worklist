@@ -5,14 +5,16 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../database/database_helper.dart';
 import '../models/user_model.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/dashboard_repository.dart';
 
 class SyncService extends ChangeNotifier {
   static const defaultPort = 8787;
   static const _serverAddressKey = 'sync_server_address';
 
-  final _db = DatabaseHelper();
+  final _auth = AuthRepository();
+  final _sync = DashboardRepository();
   HttpServer? _server;
   StreamSubscription<HttpRequest>? _subscription;
   bool _busy = false;
@@ -89,7 +91,7 @@ class SyncService extends ChangeNotifier {
         'password': password,
       },
     );
-    await _db.replaceUserData(
+    await _sync.replaceUserData(
       currentUserId,
       Map<String, dynamic>.from(response['data'] as Map),
     );
@@ -105,7 +107,7 @@ class SyncService extends ChangeNotifier {
     required String password,
     required int currentUserId,
   }) async {
-    final data = await _db.exportUserData(currentUserId);
+    final data = await _sync.exportUserData(currentUserId);
     await _postJson(
       address,
       '/sync/import',
@@ -146,7 +148,7 @@ class SyncService extends ChangeNotifier {
       if (request.method == 'POST' && request.uri.path == '/sync/export') {
         final body = await _readJson(request);
         final user = await _authenticateBody(body);
-        final data = await _db.exportUserData(user.id!);
+        final data = await _sync.exportUserData(user.id!);
         await _writeJson(request, {'ok': true, 'data': data});
         return;
       }
@@ -155,7 +157,7 @@ class SyncService extends ChangeNotifier {
         final body = await _readJson(request);
         final user = await _authenticateBody(body);
         final data = Map<String, dynamic>.from(body['data'] as Map);
-        await _db.replaceUserData(user.id!, data);
+        await _sync.replaceUserData(user.id!, data);
         await _writeJson(request, {'ok': true});
         return;
       }
@@ -185,7 +187,7 @@ class SyncService extends ChangeNotifier {
         'Username and password are required.',
       );
     }
-    final user = await _db.authenticate(username, password);
+    final user = await _auth.authenticate(username, password);
     if (user == null) {
       throw const _SyncHttpException(
         HttpStatus.unauthorized,

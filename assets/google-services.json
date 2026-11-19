@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "867700541514",
+    "firebase_url": "https://worklist-armoon-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "worklist-armoon",
+    "storage_bucket": "worklist-armoon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:867700541514:android:7762f61d5690ffcb2afeb3",
+        "android_client_info": {
+          "package_name": "com.example.worklist"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "867700541514-qfmnln0ov3u21pqr0h0gr9he9h6l37p7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.worklist",
+            "certificate_hash": "0a9d3cd57ab17f6fc219a4013a80a90ca34f93c2"
+          }
+        },
+        {
+          "client_id": "867700541514-87o3261m8a4h26kf2gmhoep0vrk11uud.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATBlLwSqsb7OAKhF1e1vkbNYddfZVZC1c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "867700541514-87o3261m8a4h26kf2gmhoep0vrk11uud.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

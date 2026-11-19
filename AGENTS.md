@@ -1,0 +1,31 @@
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Token efficiency
+
+- Start with the files and symbols relevant to the task; search before reading.
+- Never scan the whole repository without reason.
+- Do not load dependencies, generated files, binaries, archives or build outputs.
+- Read only the relevant sections of a file.
+- Summarize terminal output; show important errors and results only.
+- Avoid repeating unchanged code; return focused diffs rather than whole files.
+- Run targeted tests before broad suites.
+- Keep persistent instructions short; load specialized workflows only when needed.
+- Never sacrifice correctness to save tokens.
+
+@RTK.md
+
+<!-- ag-ui:begin -->
+## AG-UI
+Protocol work: load the `ag-ui` skill — `C:\Users\lenevo\.agents\skills\ag-ui\SKILL.md`. A2UI rendering: `C:\Users\lenevo\.agents\skills\ag-ui-a2ui-integration\SKILL.md`. Docs index: https://docs.ag-ui.com/llms.txt
+<!-- ag-ui:end -->

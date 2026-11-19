@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/theme/responsive.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,9 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>()..clearError();
-    final ok = _creatingAccount
-        ? await auth.register(_userCtrl.text.trim(), _passCtrl.text)
-        : await auth.login(_userCtrl.text.trim(), _passCtrl.text);
+    final text = _userCtrl.text.trim();
+    final isEmail = text.contains('@') &&
+        RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text);
+    final ok = isEmail
+        ? await auth.signInWithEmailLink(text)
+        : _creatingAccount
+            ? await auth.register(text, _passCtrl.text)
+            : await auth.login(text, _passCtrl.text);
     if (ok && mounted) context.go('/');
   }
 
@@ -41,9 +47,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final cs = Theme.of(context).colorScheme;
-    final wide = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
+      // Keep the focused field visible above the on-screen keyboard.
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -55,11 +62,14 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints:
-                    BoxConstraints(maxWidth: wide ? 430 : double.infinity),
-                child: Card(
+              padding: EdgeInsets.fromLTRB(
+                Responsive.pagePadding(context),
+                16,
+                Responsive.pagePadding(context),
+                16 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Responsive.centeredForm(
+                Card(
                   elevation: 12,
                   child: Padding(
                     padding: const EdgeInsets.all(32),
@@ -68,13 +78,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Image.asset(
-                              'assets/logo.png',
-                              width: 132,
-                              height: 132,
-                              fit: BoxFit.cover,
+                          Container(
+                            width: 132,
+                            height: 132,
+                            decoration: BoxDecoration(
+                              color: cs.primary,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: cs.primary.withValues(alpha: 0.45),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.construction_rounded,
+                              color: Colors.white,
+                              size: 64,
                             ),
                           ),
                           const SizedBox(height: 18),
@@ -172,14 +193,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _userCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Username or email',
+                              labelText: 'Username, email or password',
                               prefixIcon: Icon(Icons.alternate_email_rounded),
                             ),
                             textInputAction: TextInputAction.next,
                             validator: (value) {
                               final text = value?.trim() ?? '';
                               if (text.isEmpty) {
-                                return 'Enter your username or email';
+                                return 'Enter your username, email or password';
                               }
                               if (text.contains('@')) {
                                 if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -269,14 +290,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           OutlinedButton.icon(
                             onPressed: auth.isLoading
                                 ? null
-                                : () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Google sign-in is ready in the app UI. Enable the Google provider in Firebase, then connect the Google sign-in keys to activate it.',
+                                : () async {
+                                    if (!auth.isGoogleSignInConfigured) {
+                                      auth.clearError();
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(auth.googleSignInStatus),
                                         ),
-                                      ),
-                                    );
+                                      );
+                                      return;
+                                    }
+                                    final ok = await auth.signInWithGoogle();
+                                    if (ok && context.mounted) context.go('/');
                                   },
                             icon: const Icon(Icons.g_mobiledata_rounded),
                             label: const Text('Continue with Google'),

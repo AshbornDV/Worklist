@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/advance_payment_model.dart';
@@ -69,23 +69,23 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
   }
 
   Future<void> _deleteWorker() async {
+    final worker = _worker;
+    if (worker == null) return;
     final ok = await showConfirmDialog(
       context,
       title: 'Delete Worker',
       content:
-          'Delete "${_worker!.name}"? All attendance and advance records will be removed.',
+          'Delete "${worker.name}"? All attendance and advance records will be removed.',
       confirmText: 'Delete',
       destructive: true,
     );
     if (!ok || !mounted) return;
-    await context.read<WorkerProvider>().deleteWorker(_worker!.id!);
+    await context.read<WorkerProvider>().deleteWorker(worker.id!);
     if (mounted) context.go('/workers');
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -218,7 +218,12 @@ class _PaycheckTab extends StatelessWidget {
         '${_months[selectedMonth.month - 1]} ${selectedMonth.year}';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         children: [
           // ── Worker Info ──
@@ -494,7 +499,6 @@ class _AdvancesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final prov = context.watch<WorkerProvider>();
     final advances = prov.advances;
-    final cs = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -594,6 +598,8 @@ class _AdvancesTab extends StatelessWidget {
         ],
       ),
     );
+    amtCtrl.dispose();
+    noteCtrl.dispose();
   }
 }
 
@@ -608,7 +614,6 @@ class _AdvanceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = AppTheme.statusColor(advance.status, cs);
 
     return Card(
       child: Padding(
@@ -747,7 +752,12 @@ class _WorkerSummaryPanelState extends State<WorkerSummaryPanel> {
     final avatarTextColor = isActive ? cs.primary : cs.onSurface.withValues(alpha: 0.5);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

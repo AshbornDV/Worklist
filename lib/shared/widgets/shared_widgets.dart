@@ -1,5 +1,24 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+
+/// Pull-to-refresh helper: downloads the latest data from Firebase FIRST,
+/// then runs the screen's local [reloadLocal] (which re-reads SQLite). This
+/// makes every RefreshIndicator follow: pull cloud → update SQLite → reload
+/// providers → refresh UI, instead of only re-reading local SQLite. The
+/// cloud pull is a no-op when the user isn't signed in to Firebase.
+Future<void> syncThenReload(
+  BuildContext context,
+  Future<void> Function() reloadLocal,
+) async {
+  try {
+    await context.read<AuthProvider>().pullFromCloudForRefresh();
+  } catch (_) {
+    // Never let a cloud hiccup block the local reload / refresh gesture.
+  }
+  await reloadLocal();
+}
 
 // ─────────────── STAT CARD ───────────────
 
@@ -10,6 +29,7 @@ class StatCard extends StatelessWidget {
   final Color? iconColor;
   final Color? bgColor;
   final VoidCallback? onTap;
+  final String? trend;
 
   const StatCard({
     super.key,
@@ -19,6 +39,7 @@ class StatCard extends StatelessWidget {
     this.iconColor,
     this.bgColor,
     this.onTap,
+    this.trend,
   });
 
   @override
@@ -27,44 +48,86 @@ class StatCard extends StatelessWidget {
     final bg = bgColor ?? cs.primaryContainer;
     final ic = iconColor ?? cs.primary;
 
+    final iconBox = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, color: ic, size: 24),
+    );
+
+    final texts = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+            maxLines: 1,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: cs.onSurface.withValues(alpha: 0.65),
+                height: 1.2,
+              ),
+          maxLines: 2,
+          softWrap: true,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (trend != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            trend!,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: cs.onSurface.withValues(alpha: 0.45),
+                  fontSize: 11,
+                ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+
     return Card(
+      elevation: 2,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: ic, size: 26),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
+          padding: const EdgeInsets.all(16),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Below ~170px the horizontal row leaves the text ~60px, which
+              // truncates every label. Stack instead.
+              if (constraints.maxWidth < 170) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      value,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: cs.onSurface.withValues(alpha: 0.6),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [iconBox, const SizedBox(height: 10), texts],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  iconBox,
+                  const SizedBox(width: 14),
+                  Expanded(child: texts),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -140,21 +203,28 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // Scale the label column down a little on small phones so the value
+    // (which can be arbitrarily long, e.g. notes or addresses) keeps as
+    // much room as possible instead of being squeezed by a fixed width.
+    final labelWidth = MediaQuery.sizeOf(context).width < 360 ? 96.0 : 120.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (icon != null) ...[
             Icon(icon, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
             const SizedBox(width: 8),
           ],
           SizedBox(
-            width: 120,
+            width: labelWidth,
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: cs.onSurface.withValues(alpha: 0.6),
                   ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
@@ -257,13 +327,16 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: EdgeInsets.all(compact ? 24 : 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 72, color: cs.onSurface.withValues(alpha: 0.2)),
+            Icon(icon,
+                size: compact ? 56 : 72,
+                color: cs.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 16),
             Text(
               title,

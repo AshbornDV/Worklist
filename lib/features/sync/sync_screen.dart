@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/firebase/firebase_cloud_service.dart';
@@ -64,11 +64,13 @@ class _SyncScreenState extends State<SyncScreen> {
 
   Future<void> _pull() async {
     await _runSync((sync, auth) async {
+      final user = auth.currentUser;
+      if (user?.id == null || user?.username == null) return;
       await sync.pullFromServer(
         address: _addressCtrl.text,
-        username: auth.currentUser!.username,
+        username: user!.username,
         password: _passwordCtrl.text,
-        currentUserId: auth.currentUser!.id!,
+        currentUserId: user.id!,
       );
       await _reloadData();
       _show('Data copied from the server to this device.');
@@ -77,11 +79,13 @@ class _SyncScreenState extends State<SyncScreen> {
 
   Future<void> _push() async {
     await _runSync((sync, auth) async {
+      final user = auth.currentUser;
+      if (user?.id == null || user?.username == null) return;
       await sync.pushToServer(
         address: _addressCtrl.text,
-        username: auth.currentUser!.username,
+        username: user!.username,
         password: _passwordCtrl.text,
-        currentUserId: auth.currentUser!.id!,
+        currentUserId: user.id!,
       );
       _show('This device copied its data to the server.');
     });
@@ -92,8 +96,8 @@ class _SyncScreenState extends State<SyncScreen> {
     if (user?.id == null) return;
     setState(() => _cloudWorking = true);
     try {
-      final pulled =
-          await FirebaseCloudService.instance.pullIntoLocalUser(user!.id!);
+      final pulled = await FirebaseCloudService.instance
+          .pullIntoLocalUser(user!.id!, force: true);
       await _reloadData();
       _show(pulled
           ? 'Latest Firebase data downloaded.'
@@ -110,7 +114,7 @@ class _SyncScreenState extends State<SyncScreen> {
     if (user?.id == null) return;
     setState(() => _cloudWorking = true);
     try {
-      await FirebaseCloudService.instance.uploadLocalUser(user!.id!);
+      await FirebaseCloudService.instance.uploadLocalUser(user!.id!, reason: 'manual-upload-from-sync-screen');
       _show('This device data was uploaded to Firebase.');
     } catch (e) {
       _show(e.toString().replaceFirst('Exception: ', ''), isError: true);

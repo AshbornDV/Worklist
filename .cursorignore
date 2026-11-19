@@ -1,0 +1,47 @@
+# Token-saving exclusions for Cursor.
+# Mirrors .gitignore essentials without hiding tests, migrations or lockfiles.
+
+# Dependencies
+node_modules/
+vendor/
+.pub-cache/
+.pub/
+
+# Build outputs
+build/
+dist/
+coverage/
+.dart_tool/
+.gradle/
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+windows/flutter/ephemeral/
+**/doc/api/
+
+# Generated / temporary
+*.log
+*.tmp
+*.bak
+*.swp
+stdout*.txt
+stderr*.txt
+crashdumps/
+.firebase/
+*.pyc
+__pycache__/
+
+# Local databases and exports
+*.sqlite
+*.sqlite3
+*.db
+*.zip
+
+# Compiled mobile applications
+*.apk
+*.aab
+
+# Credentials
+.env*
+!.env.example

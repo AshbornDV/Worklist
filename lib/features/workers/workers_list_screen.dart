@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/worker_model.dart';
 import '../../core/providers/worker_provider.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../shared/widgets/shared_widgets.dart';
 import 'worker_detail_screen.dart';
 
@@ -122,7 +123,7 @@ class _WorkersListScreenState extends State<WorkersListScreen> {
           : Builder(
               builder: (ctx) => IconButton(
                 icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
+                onPressed: () => RootScaffoldKey.of(ctx)?.currentState?.openEndDrawer(),
               ),
             ),
       actions: [
@@ -194,7 +195,7 @@ class _WorkersListScreenState extends State<WorkersListScreen> {
             // ── Detail panel ──
             Expanded(
               child: _selectedWorkerId == null
-                  ? Center(
+                  ? const Center(
                       child: EmptyState(
                         icon: Icons.people_outline,
                         title: 'Select a worker',

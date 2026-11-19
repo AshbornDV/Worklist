@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/site_model.dart';
 import '../../core/providers/site_provider.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../shared/widgets/shared_widgets.dart';
 import 'site_detail_screen.dart';
 
@@ -124,7 +125,7 @@ class _SitesListScreenState extends State<SitesListScreen> {
           : Builder(
               builder: (ctx) => IconButton(
                 icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
+                onPressed: () => RootScaffoldKey.of(ctx)?.currentState?.openEndDrawer(),
               ),
             ),
       actions: [
@@ -197,7 +198,7 @@ class _SitesListScreenState extends State<SitesListScreen> {
             // ── Detail panel ──
             Expanded(
               child: _selectedSiteId == null
-                  ? Center(
+                  ? const Center(
                       child: EmptyState(
                         icon: Icons.location_city_outlined,
                         title: 'Select a site',
