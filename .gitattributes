@@ -1,3 +1,0 @@
-dist/Worklist.apk filter=lfs diff=lfs merge=lfs -text
-firebase-tools-instant-win.exe filter=lfs diff=lfs merge=lfs -text
-zipFile.zip filter=lfs diff=lfs merge=lfs -text
