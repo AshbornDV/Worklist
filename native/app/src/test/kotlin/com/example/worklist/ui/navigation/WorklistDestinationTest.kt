@@ -6,17 +6,18 @@ import org.junit.Test
 /**
  * Guards the shell against silently dropping a screen during the Flutter port.
  *
- * The Flutter router in `lib/app.dart` declares exactly 24 GoRoutes. Every one
- * of them must have a destination here, and no two destinations may share a
- * route string (Navigation Compose would otherwise collapse them).
+ * The Flutter router in `lib/app.dart` declares exactly 26 GoRoutes (24 original +
+ * 2 new form routes: products/new, services/new). Every one of them must have a
+ * destination here, and no two destinations may share a route string (Navigation
+ * Compose would otherwise collapse them).
  */
 class WorklistDestinationTest {
 
     @Test
-    fun `there are exactly 24 destinations`() {
+    fun `there are exactly 26 destinations`() {
         assertEquals(
-            "shell must mirror the 24 GoRoutes in lib/app.dart",
-            24,
+            "shell must mirror the 26 GoRoutes in lib/app.dart",
+            26,
             WorklistDestination.entries.size,
         )
     }

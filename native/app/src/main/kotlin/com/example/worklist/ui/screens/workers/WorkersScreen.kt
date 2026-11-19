@@ -17,6 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,14 +29,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.IconButton
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.worklist.data.model.Worker
+import com.example.worklist.ui.navigation.WorklistDestination
 import com.example.worklist.ui.viewmodel.WorkersViewModel
 import com.example.worklist.ui.viewmodel.workersViewModelFactory
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun WorkersScreen(
+    navController: NavHostController,
     viewModel: WorkersViewModel = viewModel(factory = workersViewModelFactory())
 ) {
     val workers by viewModel.workers.collectAsState()
@@ -46,11 +51,16 @@ fun WorkersScreen(
             TopAppBar(
                 title = { Text("Workers") },
                 actions = {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = "Add worker",
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
+                    IconButton(
+                        onClick = {
+                            navController.navigate(WorklistDestination.WorkerNew.route)
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = "Add worker",
+                        )
+                    }
                 }
             )
         }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -28,13 +29,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.worklist.data.model.Product
+import com.example.worklist.ui.navigation.WorklistDestination
 import com.example.worklist.ui.viewmodel.ProductsViewModel
 import com.example.worklist.ui.viewmodel.productsViewModelFactory
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun ProductsScreen(
+    navController: NavHostController,
     viewModel: ProductsViewModel = viewModel(factory = productsViewModelFactory())
 ) {
     val products by viewModel.products.collectAsState()
@@ -45,11 +49,16 @@ fun ProductsScreen(
             TopAppBar(
                 title = { Text("Products") },
                 actions = {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = "Add product",
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
+                    IconButton(
+                        onClick = {
+                            navController.navigate(WorklistDestination.ProductNew.route)
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = "Add product",
+                        )
+                    }
                 }
             )
         }

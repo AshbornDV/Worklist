@@ -97,6 +97,11 @@ sealed interface WorklistDestination {
         override val title = "Products"
     }
 
+    object ProductNew : WorklistDestination {
+        override val route = "/products/new"
+        override val title = "New product"
+    }
+
     object Stock : WorklistDestination {
         override val route = "/stock"
         override val title = "Stock"
@@ -105,6 +110,11 @@ sealed interface WorklistDestination {
     object Services : WorklistDestination {
         override val route = "/services"
         override val title = "Services"
+    }
+
+    object ServiceNew : WorklistDestination {
+        override val route = "/services/new"
+        override val title = "New service"
     }
 
     object Notifications : WorklistDestination {
@@ -152,8 +162,10 @@ sealed interface WorklistDestination {
             Attendance,
             Payroll,
             Products,
+            ProductNew,
             Stock,
             Services,
+            ServiceNew,
             Notifications,
             NotificationSettings,
             NotificationDiagnostics,
