@@ -17,12 +17,17 @@ import com.example.worklist.ui.screens.calendar.CalendarScreen
 import com.example.worklist.ui.screens.collections.CollectionsScreen
 import com.example.worklist.ui.screens.dashboard.DashboardScreen
 import com.example.worklist.ui.screens.notifications.NotificationsScreen
+import com.example.worklist.ui.screens.payroll.PaymentRecordScreen
 import com.example.worklist.ui.screens.payroll.PayrollScreen
 import com.example.worklist.ui.screens.products.ProductsScreen
 import com.example.worklist.ui.screens.services.ServicesScreen
+import com.example.worklist.ui.screens.sites.SiteFormScreen
 import com.example.worklist.ui.screens.sites.SitesScreen
+import com.example.worklist.ui.screens.stock.StockMovementScreen
 import com.example.worklist.ui.screens.stock.StockScreen
+import com.example.worklist.ui.screens.workers.AttendanceRecordScreen
 import com.example.worklist.ui.screens.workers.AttendanceScreen
+import com.example.worklist.ui.screens.workers.WorkerFormScreen
 import com.example.worklist.ui.screens.workers.WorkersScreen
 
 /**
@@ -47,7 +52,11 @@ fun WorklistNavHost(
                 when (destination) {
                     is WorklistDestination.Home -> DashboardScreen()
                     is WorklistDestination.Sites -> SitesScreen()
+                    is WorklistDestination.SiteNew -> SiteFormScreen(navController = navController)
+                    is WorklistDestination.SiteEdit -> SiteFormScreen(navController = navController, siteId = destination.id)
                     is WorklistDestination.Workers -> WorkersScreen()
+                    is WorklistDestination.WorkerNew -> WorkerFormScreen(navController = navController)
+                    is WorklistDestination.WorkerEdit -> WorkerFormScreen(navController = navController, workerId = destination.id)
                     is WorklistDestination.Attendance -> AttendanceScreen()
                     is WorklistDestination.Payroll -> PayrollScreen()
                     is WorklistDestination.Products -> ProductsScreen()

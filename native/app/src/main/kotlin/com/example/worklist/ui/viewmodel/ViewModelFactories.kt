@@ -48,7 +48,7 @@ fun attendanceViewModelFactory(): ViewModelProvider.Factory = object : ViewModel
 fun payrollViewModelFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         val repos = applicationFrom(extras).repositories
-        return PayrollViewModel(repos.payrollRepository, repos.workerRepository) as T
+        return PayrollViewModel(repos.payrollRepository, repos.workerRepository, repos.siteRepository, repos.paymentRepository) as T
     }
 }
 
@@ -60,8 +60,10 @@ fun productsViewModelFactory(): ViewModelProvider.Factory = object : ViewModelPr
 
 @Suppress("UNCHECKED_CAST")
 fun stockViewModelFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
-        StockViewModel(applicationFrom(extras).repositories.productRepository) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+        val repos = applicationFrom(extras).repositories
+        return StockViewModel(repos.productRepository, repos.stockMovementRepository) as T
+    }
 }
 
 @Suppress("UNCHECKED_CAST")
