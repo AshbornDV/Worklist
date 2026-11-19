@@ -303,12 +303,11 @@ class FirebaseCloudService {
     await SessionStorage.saveEmailLinkEmail(email);
 
     final actionCodeSettings = ActionCodeSettings(
-      url: 'https://${DefaultFirebaseOptions.currentPlatform.projectId}.firebaseapp.com/__/auth/action',
+      url: 'https://${DefaultFirebaseOptions.android.projectId}.firebaseapp.com/__/auth/action',
       handleCodeInApp: true,
-      androidPackageName: DefaultFirebaseOptions.android.appId,
+      androidPackageName: 'com.example.worklist',
       androidInstallApp: true,
       androidMinimumVersion: '12',
-      iOSBundleId: DefaultFirebaseOptions.web.appId,
     );
 
     await FirebaseAuth.instance.sendSignInLinkToEmail(email: email, actionCodeSettings: actionCodeSettings);

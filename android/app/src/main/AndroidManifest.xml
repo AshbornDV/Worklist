@@ -60,6 +60,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Email-link (passwordless) sign-in deep link receiver -->
+            <!-- This must match ActionCodeSettings.url in firebase_cloud_service.dart -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="worklist-armoon.firebaseapp.com"
+                    android:pathPrefix="/__/auth/action"/>
+            </intent-filter>
         </activity>
         <!-- Re-arms the periodic notification worker after a device reboot so
              reminders keep working. The Application.onCreate also schedules it
@@ -79,27 +90,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-    
-    >
-    
-        <!-- Email-link (passwordless) sign-in deep link receiver -->
-        <!-- This must match ActionCodeSettings.url in lib/core/firebase/firebase_cloud_service.dart -->
-        <activity
-            android:name="com.google.firebase.auth.samples.emailauth.MainActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data
-                    android:scheme="https"
-                    android:host="worklist-armoon.firebaseio.com"
-                    android:pathPrefix="/__/auth/action"/>
-            </intent-filter>
-        </activity>
-
-</application>
+    </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
@@ -112,7 +103,4 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
-
->
 </manifest>
-

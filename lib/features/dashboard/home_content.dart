@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -31,7 +33,11 @@ class _HomeContentState extends State<HomeContent> {
   void initState() {
     super.initState();
     _load();
-    CollectionReminderService.instance.requestPermissions();
+    // Re-arm the periodic collection-reminder worker on every cold start so
+    // reminders keep firing after the process is killed. WorkManager persists
+    // periodic work across reboots, but the schedule is owned by Dart and the
+    // OS can drop it; re-scheduling here is the cheap, idempotent safeguard.
+    unawaited(CollectionReminderService.instance.requestPermissions());
   }
 
   Future<void> _load() async {

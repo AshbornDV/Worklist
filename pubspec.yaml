@@ -1,7 +1,7 @@
 name: worklist
 description: "Worklist, a cross-platform site and worker management application for construction projects."
 publish_to: 'none'
-version: 1.4.1+8
+version: 1.5.0+9
 
 environment:
   sdk: '>=3.2.0 <4.0.0'

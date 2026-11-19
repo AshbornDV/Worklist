@@ -265,47 +265,58 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                           const SizedBox(height: 28),
-                          FilledButton.icon(
-                            onPressed: auth.isLoading ? null : _submit,
-                            icon: auth.isLoading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : Icon(_creatingAccount
-                                    ? Icons.person_add_alt_1_rounded
-                                    : Icons.login_rounded),
-                            label: Text(
-                              auth.isLoading
-                                  ? 'Please wait...'
-                                  : (_creatingAccount
-                                      ? 'Create account'
-                                      : 'Sign in'),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          OutlinedButton.icon(
-                            onPressed: auth.isLoading
-                                ? null
-                                : () async {
-                                    if (!auth.isGoogleSignInConfigured) {
-                                      auth.clearError();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(auth.googleSignInStatus),
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                    final ok = await auth.signInWithGoogle();
-                                    if (ok && context.mounted) context.go('/');
-                                  },
-                            icon: const Icon(Icons.g_mobiledata_rounded),
-                            label: const Text('Continue with Google'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Google Sign-In button
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: auth.isLoading
+                                      ? null
+                                      : () async {
+                                          if (!auth.isGoogleSignInConfigured) {
+                                            auth.clearError();
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(auth.googleSignInStatus),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          final ok = await auth.signInWithGoogle();
+                                          if (ok && context.mounted) context.go('/');
+                                        },
+                                  icon: const Icon(Icons.g_mobiledata_rounded),
+                                  label: const Text('Continue with Google'),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Primary Sign In / Create Account button
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: auth.isLoading ? null : _submit,
+                                  icon: auth.isLoading
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                          ),
+                                        )
+                                      : Icon(_creatingAccount
+                                          ? Icons.person_add_alt_1_rounded
+                                          : Icons.login_rounded),
+                                  label: Text(
+                                    auth.isLoading
+                                        ? 'Please wait...'
+                                        : (_creatingAccount
+                                            ? 'Create account'
+                                            : 'Sign in'),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 18),
                           Text(

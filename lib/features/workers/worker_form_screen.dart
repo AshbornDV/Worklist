@@ -149,7 +149,10 @@ class _WorkerFormScreenState extends State<WorkerFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_initialLoad) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: Text(_isEditing ? 'Edit Worker' : 'Add New Worker')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
