@@ -56,7 +56,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS 'index_company_memberships_company_user' ON company_memberships('company_id', 'user_id')")
 
         // Migrate existing User records to default company membership
-        db.execSQL("INSERT INTO company_memberships (company_id, user_id, role, is_admin, joined_at, status, created_at, updated_at) SELECT $defaultCompanyId, id, role, 1, COALESCE(last_login, ''), 'active', createdAt, updatedAt FROM users WHERE id > 0")
+        db.execSQL("INSERT INTO company_memberships (company_id, user_id, role, is_admin, joined_at, status, created_at, updated_at) SELECT $defaultCompanyId, id, role, 1, COALESCE(last_login, ''), 'active', created_at, updated_at FROM users WHERE id > 0")
 
         // Create payments table
         db.execSQL("""

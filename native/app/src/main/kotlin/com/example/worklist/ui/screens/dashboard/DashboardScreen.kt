@@ -33,13 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.worklist.data.model.Product
+import com.example.worklist.ui.navigation.WorklistDestination
 import com.example.worklist.ui.viewmodel.DashboardStats
 import com.example.worklist.ui.viewmodel.DashboardViewModel
 import com.example.worklist.ui.viewmodel.dashboardViewModelFactory
 
 @Composable
 fun DashboardScreen(
+    navController: NavHostController,
     viewModel: DashboardViewModel = viewModel(factory = dashboardViewModelFactory())
 ) {
     val stats by viewModel.stats.collectAsState()
@@ -78,7 +81,7 @@ fun DashboardScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item { StatsGrid(stats = stats) }
+                item { StatsGrid(stats = stats, navController = navController) }
                 item { StockAlertsCard(stats = stats, products = emptyList()) }
                 item { ActivityFeed(emptyList()) }
             }
@@ -87,28 +90,34 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun StatsGrid(stats: DashboardStats) {
+private fun StatsGrid(stats: DashboardStats, navController: NavHostController) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Row 1: 2 cards
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(label = "Active Sites", value = "${stats.activeSites}",
-                icon = Icons.Outlined.LocationCity, color = Color(0xFF2563EB))
+                icon = Icons.Outlined.LocationCity, color = Color(0xFF2563EB),
+                onClick = { navController.navigate(WorklistDestination.Sites.route) })
             StatCard(label = "Total Workers", value = "${stats.activeWorkers}",
-                icon = Icons.Outlined.Person, color = Color(0xFF16A34A))
+                icon = Icons.Outlined.Person, color = Color(0xFF16A34A),
+                onClick = { navController.navigate(WorklistDestination.Workers.route) })
         }
         // Row 2: 2 cards
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(label = "Present Today", value = "${stats.workersPresentToday}",
-                icon = Icons.Outlined.Person, color = Color(0xFF0D9488))
+                icon = Icons.Outlined.Person, color = Color(0xFF0D9488),
+                onClick = { navController.navigate(WorklistDestination.Attendance.route) })
             StatCard(label = "Absent Today", value = "${stats.workersAbsentToday}",
-                icon = Icons.Outlined.Inventory2, color = Color(0xFFDC2626))
+                icon = Icons.Outlined.Inventory2, color = Color(0xFFDC2626),
+                onClick = {})
         }
         // Row 3: 2 cards
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard(label = "Total Products", value = "${stats.totalProducts}",
-                icon = Icons.Outlined.Inventory2, color = Color(0xFF7C3AED))
+                icon = Icons.Outlined.Inventory2, color = Color(0xFF7C3AED),
+                onClick = { navController.navigate(WorklistDestination.Products.route) })
             StatCard(label = "Pending Payments", value = "Rs. ${"%.0f".format(stats.pendingPayments)}",
-                icon = Icons.Outlined.Payments, color = Color(0xFFF59E0B))
+                icon = Icons.Outlined.Payments, color = Color(0xFFF59E0B),
+                onClick = { navController.navigate(WorklistDestination.Collections.route) })
         }
     }
 }
@@ -118,13 +127,15 @@ private fun StatCard(
     label: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color
+    color: Color,
+    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

@@ -50,7 +50,7 @@ fun WorklistNavHost(
         WorklistDestination.entries.forEach { destination ->
             composable(route = destination.route) {
                 when (destination) {
-                    is WorklistDestination.Home -> DashboardScreen()
+                    is WorklistDestination.Home -> DashboardScreen(navController = navController)
                     is WorklistDestination.Sites -> SitesScreen(navController = navController)
                     is WorklistDestination.SiteNew -> SiteFormScreen(navController = navController)
                     is WorklistDestination.SiteEdit -> SiteFormScreen(navController = navController, siteId = destination.id)
