@@ -173,7 +173,10 @@ class _SiteWorkerManagerAppState extends State<SiteWorkerManagerApp> {
   Widget build(BuildContext context) {
     if (_router == null) {
       return const MaterialApp(
-          home: Scaffold(body: Center(child: CircularProgressIndicator())));
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
 
     final auth = context.watch<AuthProvider>();
