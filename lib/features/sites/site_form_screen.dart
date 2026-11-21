@@ -451,7 +451,7 @@ class _SiteFormScreenState extends State<SiteFormScreen> {
                           if (v != null) setState(() => _workAreaUnit = v);
                         },
                       );
-                      if (constraints.maxWidth < 420) {
+                      if (constraints.maxWidth < 520) {
                         return Column(
                           children: [
                             workAreaField,
@@ -601,14 +601,13 @@ class _SiteFormScreenState extends State<SiteFormScreen> {
                           keyboardType: TextInputType.number,
                           validator: (v) {
                             if (v == null || v.isEmpty) return null;
-                            final val = double.tryParse(v);
-                            if (val == null) return 'Invalid amount';
-                            final tot = double.tryParse(_finalCost.text) ??
-                                double.tryParse(_cost.text) ??
-                                0;
-                            if (val > tot && tot > 0) {
-                              return 'Cannot exceed total cost';
+                            if (double.tryParse(v) == null) {
+                              return 'Invalid amount';
                             }
+                            // A customer paying more than the estimate is a
+                            // normal event (extra work, revised scope). It is
+                            // surfaced as "Overpaid by …" below instead of
+                            // being rejected as invalid input.
                             return null;
                           },
                         ),
@@ -826,6 +825,17 @@ class _RemainingPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final remaining = total - received;
     final cs = Theme.of(context).colorScheme;
+    final overpaid = remaining < 0;
+    final accent = remaining > 0
+        ? const Color(0xFFF57C00)
+        : overpaid
+            ? const Color(0xFF1565C0)
+            : const Color(0xFF2E7D32);
+    final accentBg = remaining > 0
+        ? const Color(0xFFFFF3E0)
+        : overpaid
+            ? const Color(0xFFE3F2FD)
+            : const Color(0xFFE8F5E9);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,32 +852,28 @@ class _RemainingPreview extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: remaining > 0
-                ? const Color(0xFFFFF3E0)
-                : const Color(0xFFE8F5E9),
+            color: accentBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: remaining > 0
-                  ? const Color(0xFFF57C00)
-                  : const Color(0xFF2E7D32),
-            ),
+            border: Border.all(color: accent),
           ),
           child: Row(
             children: [
               Icon(
                 remaining > 0
                     ? Icons.notifications_active_outlined
-                    : Icons.check_circle_outline,
-                color: remaining > 0
-                    ? const Color(0xFFF57C00)
-                    : const Color(0xFF2E7D32),
+                    : overpaid
+                        ? Icons.savings_outlined
+                        : Icons.check_circle_outline,
+                color: accent,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   remaining > 0
                       ? 'Remaining: Rs. ${remaining.toStringAsFixed(0)}'
-                      : 'Payment complete',
+                      : overpaid
+                          ? 'Overpaid by Rs. ${(-remaining).toStringAsFixed(0)}'
+                          : 'Payment complete',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: cs.onSurface,
                         fontWeight: FontWeight.w600,

@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+    <!-- Location (required by geolocator package) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
     <!-- Boot completion: re-arm notification worker after reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
@@ -31,13 +35,16 @@
     <!-- Notifications (Android 13+ runtime post-notification permission) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+    <!-- WorkManager background sync requires WAKE_LOCK for reliable execution -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
     <!-- Camera hardware feature (not required — app works without a camera) -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.any" android:required="false"/>
     <application
         android:label="Worklist"
         android:name=".WorklistApplication"
-        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -48,30 +55,30 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
-            <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-            <!-- Email-link (passwordless) sign-in deep link receiver -->
-            <!-- This must match ActionCodeSettings.url in firebase_cloud_service.dart -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data
-                    android:scheme="https"
-                    android:host="worklist-armoon.firebaseapp.com"
-                    android:pathPrefix="/__/auth/action"/>
-            </intent-filter>
-        </activity>
+                <!-- Specifies an Android theme to apply to this Activity as soon as
+                     the Android process has started. This theme is visible to the user
+                     while the Flutter UI initializes. After that, this theme continues
+                     to determine the Window background behind the Flutter UI. -->
+                <meta-data
+                  android:name="io.flutter.embedding.android.NormalTheme"
+                  android:resource="@style/NormalTheme"
+                  />
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN"/>
+                    <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+                <!-- Email-link (passwordless) sign-in deep link receiver -->
+                <!-- This must match ActionCodeSettings.url in firebase_cloud_service.dart -->
+                <intent-filter android:autoVerify="true">
+                    <action android:name="android.intent.action.VIEW"/>
+                    <category android:name="android.intent.category.DEFAULT"/>
+                    <category android:name="android.intent.category.BROWSABLE"/>
+                    <data
+                        android:scheme="https"
+                        android:host="worklist-armoon.firebaseapp.com"
+                        android:pathPrefix="/__/auth/action"/>
+                </intent-filter>
+            </activity>
         <!-- Re-arms the periodic notification worker after a device reboot so
              reminders keep working. The Application.onCreate also schedules it
              on every normal launch; this is a belt-and-braces safeguard. -->
@@ -89,6 +96,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Remove AndroidX Startup's InitializationProvider since we implement
+             Configuration.Provider in our Application class for on-demand WorkManager
+             initialization. This prevents conflicts with the workmanager plugin. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="remove" />
 
     </application>
     <!-- Required to query activities that can process text, see:

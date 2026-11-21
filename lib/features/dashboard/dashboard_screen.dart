@@ -284,8 +284,9 @@ class _MobileLayout extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              height: 176,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              // Was a fixed 176dp, which overflowed once the header held the
+              // logo, title, subtitle and the bell action. Size to content.
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -318,7 +319,7 @@ class _MobileLayout extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerRight,
                     child: IconButton(

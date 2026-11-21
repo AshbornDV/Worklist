@@ -12,15 +12,24 @@ class FirebaseAuthListener {
 
   StreamSubscription<User?>? _authStateSubscription;
   StreamSubscription<User?>? _idTokenSubscription;
+  bool _disposed = false;
+
+  /// Returns true if the listener has been stopped and no callbacks should
+  /// execute. Used to prevent notifications during route teardown.
+  bool get isDisposed => _disposed;
 
   void start({
     required FirebaseAuthUserHandler onAuthStateChanged,
     required FirebaseAuthUserHandler onIdTokenChanged,
   }) {
     stop();
+    _disposed = false;
 
     _authStateSubscription =
         FirebaseAuth.instance.authStateChanges().listen((user) async {
+      // Check disposed state before and after potential async operations
+      // to prevent notifications during route teardown.
+      if (_disposed) return;
       try {
         await onAuthStateChanged(user);
       } catch (error, stackTrace) {
@@ -31,6 +40,7 @@ class FirebaseAuthListener {
 
     _idTokenSubscription =
         FirebaseAuth.instance.idTokenChanges().listen((user) async {
+      if (_disposed) return;
       try {
         await onIdTokenChanged(user);
       } catch (error, stackTrace) {
@@ -41,6 +51,7 @@ class FirebaseAuthListener {
   }
 
   void stop() {
+    _disposed = true;
     _authStateSubscription?.cancel();
     _idTokenSubscription?.cancel();
     _authStateSubscription = null;

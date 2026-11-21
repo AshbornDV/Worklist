@@ -29,6 +29,12 @@ class DashboardRepository {
   Future<List<Map<String, dynamic>>> getPaymentsChartData() =>
       _db.getPaymentsChartData();
 
+  Future<List<Map<String, dynamic>>> getMonthlyRevenueChartData() =>
+      _db.getMonthlyRevenueChartData();
+
+  Future<List<Map<String, dynamic>>> getMonthlyPayrollChartData() =>
+      _db.getMonthlyPayrollChartData();
+
   // ─────────────── BULK SYNC (used by cloud + local sync) ───────────────
 
   Future<bool> hasUserData(int userId) => _db.hasUserData(userId);
@@ -43,4 +49,13 @@ class DashboardRepository {
 
   Future<void> replaceUserData(int userId, Map<String, dynamic> data) =>
       _db.replaceUserData(userId, data);
+
+  // ─────────────── ACTIVITY FEED ───────────────
+
+  /// Read-only: recent activity feed for the dashboard.
+  Future<List<Map<String, dynamic>>> getRecentActivity({int limit = 8}) =>
+      _db.getRecentActivity(limit: limit);
+
+  /// Public accessor for current user's id (throws if no user signed in).
+  int requireUserId() => _db.requireUserId();
 }

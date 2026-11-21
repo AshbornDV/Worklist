@@ -58,8 +58,19 @@ class SiteModel {
   double get totalCost => finalCost ?? estimatedCost;
   double get totalReceived => advanceReceived + constructionPaid;
   double get balance => totalCost - totalReceived;
-  bool get isPaid => balance <= 0;
-  bool get hasRemainingPayment => balance > 0;
+
+  /// True only when a real cost is set and it has been covered. A site with no
+  /// cost priced yet is neither paid nor overdue — previously it reported
+  /// "PAID" while also showing "0% paid", which contradicts itself.
+  bool get isPaid => totalCost > 0 && balance <= 0;
+
+  /// Customers often pay more than the estimate. That is valid data, not an
+  /// error: track the excess instead of pretending the balance paid is the
+  /// paid amount.
+  bool get isOverpaid => totalCost > 0 && balance < 0;
+  double get overpayment => balance < 0 ? -balance : 0;
+
+  bool get hasRemainingPayment => totalCost > 0 && balance > 0;
   double get completionPercentage => totalCost > 0
       ? (totalReceived / totalCost * 100).clamp(0.0, 100.0)
       : 0.0;

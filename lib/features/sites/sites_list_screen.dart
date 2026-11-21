@@ -375,16 +375,23 @@ class _DesktopGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
+    // Cards carry optional rows (payment reminder, manager, notes, last paid),
+    // so their height varies per site. A GridView forces one height for every
+    // tile: too short overflows, too tall leaves a hole in lighter cards. Lay
+    // them out with intrinsic height instead.
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 400,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.32,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: [
+            for (final site in sites)
+              SizedBox(width: 340, child: _SiteCard(site: site)),
+          ],
+        ),
       ),
-      itemCount: sites.length,
-      itemBuilder: (_, i) => _SiteCard(site: sites[i]),
     );
   }
 }
@@ -515,7 +522,10 @@ class _SiteCard extends StatelessWidget {
                   ],
                 ),
               ],
-              const Spacer(),
+              // Follow the content instead of pinning the footer to the tile
+              // bottom; the pinned footer opened a hole in the middle of cards
+              // whose site has little data.
+              const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -538,16 +548,31 @@ class _SiteCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        site.isPaid ? 'PAID' : 'Balance',
+                        site.isOverpaid
+                            ? 'Overpaid'
+                            : site.isPaid
+                                ? 'PAID'
+                                : site.hasRemainingPayment
+                                    ? 'Balance'
+                                    : 'Not priced',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: site.isPaid
-                                  ? const Color(0xFF2E7D32)
-                                  : cs.onSurface.withValues(alpha: 0.5),
-                              fontWeight:
-                                  site.isPaid ? FontWeight.bold : null,
+                              color: site.isOverpaid
+                                  ? const Color(0xFF1565C0)
+                                  : site.isPaid
+                                      ? const Color(0xFF2E7D32)
+                                      : cs.onSurface.withValues(alpha: 0.5),
+                              fontWeight: site.isPaid || site.isOverpaid
+                                  ? FontWeight.bold
+                                  : null,
                             ),
                       ),
-                      if (!site.isPaid)
+                      if (site.isOverpaid)
+                        CurrencyText(site.overpayment,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1565C0)),
+                            compact: true)
+                      else if (site.hasRemainingPayment)
                         CurrencyText(site.balance,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600,

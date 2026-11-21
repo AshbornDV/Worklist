@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext traffic for local network addresses (for Peer-to-Peer sync) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <ip-address includeSubdomains="true">10.0.0.0/8</ip-address>
+        <ip-address includeSubdomains="true">172.16.0.0/12</ip-address>
+        <ip-address includeSubdomains="true">192.168.0.0/16</ip-address>
+    </domain-config>
+    <!-- Default: block cleartext for all other traffic -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

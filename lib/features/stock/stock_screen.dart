@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/store_product_model.dart';
@@ -54,10 +55,16 @@ class _StockScreenState extends State<StockScreen> {
       body: prov.loading
           ? const Center(child: CircularProgressIndicator())
           : products.isEmpty
-              ? const EmptyState(
+              ? EmptyState(
                   icon: Icons.inventory_outlined,
                   title: 'No products in stock',
-                  subtitle: 'Add products first, then manage stock here.',
+                  subtitle:
+                      'Add a product first, then you can record stock in/out here.',
+                  action: FilledButton.icon(
+                    onPressed: () => context.go('/products'),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Product'),
+                  ),
                 )
               : RefreshIndicator(
                   onRefresh: () => syncThenReload(context, _load),

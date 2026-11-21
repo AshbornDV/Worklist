@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../../core/database/database_helper.dart';
+import '../../core/repositories/dashboard_repository.dart';
 import '../../shared/widgets/shared_widgets.dart';
 import '../dashboard/dashboard_charts.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -17,7 +17,7 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
-  final _db = DatabaseHelper();
+  final _dashboardRepository = DashboardRepository();
 
   bool _loading = true;
   Object? _error;
@@ -44,14 +44,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     });
     try {
       final results = await Future.wait([
-        _db.getDashboardStats(),
-        _db.getAttendanceChartData(),
-        _db.getPaymentsChartData(),
-        _db.getExpensesChartData(),
-        _db.getMaterialUsageChartData(),
-        _db.getSiteProgressChartData(),
-        _db.getMonthlyRevenueChartData(),
-        _db.getMonthlyPayrollChartData(),
+        _dashboardRepository.getDashboardStats(),
+        _dashboardRepository.getAttendanceChartData(),
+        _dashboardRepository.getPaymentsChartData(),
+        _dashboardRepository.getExpensesChartData(),
+        _dashboardRepository.getMaterialUsageChartData(),
+        _dashboardRepository.getSiteProgressChartData(),
+        _dashboardRepository.getMonthlyRevenueChartData(),
+        _dashboardRepository.getMonthlyPayrollChartData(),
       ]);
       if (!mounted) return;
       setState(() {

@@ -1,0 +1,82 @@
+{
+  "Anil Kumar": {
+    "attendance": {
+      "full": 3,
+      "half": 1,
+      "absent": 0
+    },
+    "advances": 1850.0,
+    "halfDayRate": 475.0,
+    "calculatePaycheck": {
+      "grossEarnings": 3325.0,
+      "netPayable": 1475.0,
+      "hasDebt": false
+    },
+    "generatePayroll": {
+      "fullDays": 3,
+      "halfDays": 1,
+      "advanceAmount": 1850.0,
+      "netSalary": 1475.0
+    }
+  },
+  "Bina Shrestha": {
+    "attendance": {
+      "full": 2,
+      "half": 0,
+      "absent": 1
+    },
+    "advances": 2500.0,
+    "halfDayRate": 550.0,
+    "calculatePaycheck": {
+      "grossEarnings": 2200.0,
+      "netPayable": -300.0,
+      "hasDebt": true
+    },
+    "generatePayroll": {
+      "fullDays": 2,
+      "halfDays": 0,
+      "advanceAmount": 2500.0,
+      "netSalary": 0.0
+    }
+  },
+  "Chandra Rai": {
+    "attendance": {
+      "full": 1,
+      "half": 0,
+      "absent": 0
+    },
+    "advances": 0.0,
+    "halfDayRate": 625.0,
+    "calculatePaycheck": {
+      "grossEarnings": 1250.0,
+      "netPayable": 1250.0,
+      "hasDebt": false
+    },
+    "generatePayroll": {
+      "fullDays": 1,
+      "halfDays": 0,
+      "advanceAmount": 0.0,
+      "netSalary": 1250.0
+    }
+  },
+  "Deepak Yadav": {
+    "attendance": {
+      "full": 0,
+      "half": 0,
+      "absent": 0
+    },
+    "advances": 0.0,
+    "halfDayRate": 350.0,
+    "calculatePaycheck": {
+      "grossEarnings": 0.0,
+      "netPayable": 0.0,
+      "hasDebt": false
+    },
+    "generatePayroll": {
+      "fullDays": 0,
+      "halfDays": 0,
+      "advanceAmount": 0.0,
+      "netSalary": 0.0
+    }
+  }
+}

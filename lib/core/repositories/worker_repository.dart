@@ -1,6 +1,7 @@
 import '../database/database_helper.dart';
 import '../models/advance_payment_model.dart';
 import '../models/attendance_model.dart';
+import '../models/payroll_model.dart';
 import '../models/site_model.dart';
 import '../models/worker_document_model.dart';
 import '../models/worker_model.dart';
@@ -104,4 +105,16 @@ class WorkerRepository {
 
   Future<List<SiteModel>> getSitesByWorker(int workerId) =>
       _db.getSitesByWorker(workerId);
+
+  // ─────────────── CALENDAR SERVICES ───────────────
+
+  /// Read-only: attendance rows within an inclusive date range for the
+  /// current user. Returns rows with 'worker_name' included.
+  Future<List<Map<String, dynamic>>> getAttendanceInRange(
+          String start, String end) =>
+      _db.getAttendanceInRange(start, end);
+
+  /// Read-only: payroll record for a given month.
+  Future<List<PayrollModel>> getPayrollForMonth(DateTime month) =>
+      _db.getPayrollForMonth(month);
 }

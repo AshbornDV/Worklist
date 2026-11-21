@@ -288,8 +288,6 @@ class _FinancialCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final pct = site.completionPercentage / 100;
-    final balanceColor =
-        site.isPaid ? const Color(0xFF2E7D32) : const Color(0xFFF57C00);
 
     return Card(
       child: Padding(
@@ -337,9 +335,19 @@ class _FinancialCard extends StatelessWidget {
                 const Color(0xFF2E7D32)),
             const SizedBox(height: 8),
             _FRow(
-              site.isPaid ? 'Fully Paid' : 'Balance Due',
-              site.balance.abs(),
-              balanceColor,
+              site.isOverpaid
+                  ? 'Overpaid'
+                  : site.isPaid
+                      ? 'Fully Paid'
+                      : site.hasRemainingPayment
+                          ? 'Balance Due'
+                          : 'Not priced yet',
+              site.isOverpaid ? site.overpayment : site.balance.abs(),
+              site.isOverpaid
+                  ? const Color(0xFF1565C0)
+                  : site.isPaid
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFFF57C00),
               bold: true,
             ),
             const SizedBox(height: 8),
@@ -677,10 +685,16 @@ class _WorkersSection extends StatelessWidget {
     if (!context.mounted) return;
 
     if (available.isEmpty) {
+      // Two different situations used to produce the same dead-end message,
+      // and neither offered a way forward. Always give the user a next step.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('All active workers are already assigned to this site.')),
+        SnackBar(
+          content: const Text('No unassigned workers available.'),
+          action: SnackBarAction(
+            label: 'Add Worker',
+            onPressed: () => context.go('/workers/new'),
+          ),
+        ),
       );
       return;
     }

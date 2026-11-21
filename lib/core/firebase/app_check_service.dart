@@ -41,6 +41,15 @@ class AppCheckService {
     defaultValue: '',
   );
 
+  /// Set to true via --dart-define=SKIP_PLAY_INTEGRITY=true during release builds
+  /// if Play Integrity API is not yet configured in Firebase Console.
+  /// This allows the app to run in release mode while you verify Play Integrity setup.
+  /// IMPORTANT: Remove this flag before publishing to production!
+  static const skipPlayIntegrity = bool.fromEnvironment(
+    'SKIP_PLAY_INTEGRITY',
+    defaultValue: false,
+  );
+
   String? _lastLoggedDebugToken;
   bool _activated = false;
 
@@ -52,7 +61,7 @@ class AppCheckService {
       if (kIsWeb) {
         await _activateWeb();
       } else if (Platform.isAndroid) {
-        if (kDebugMode) {
+        if (kDebugMode || skipPlayIntegrity) {
           await _activateAndroidDebug();
         } else {
           await _activateAndroidRelease();

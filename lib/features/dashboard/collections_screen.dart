@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/database/database_helper.dart';
-import '../../features/dashboard/dashboard_screen.dart';
 import '../../core/models/site_model.dart';
+import '../../core/repositories/site_repository.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../shared/widgets/shared_widgets.dart';
 
 class CollectionsScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class CollectionsScreen extends StatefulWidget {
 }
 
 class _CollectionsScreenState extends State<CollectionsScreen> {
-  final _db = DatabaseHelper();
+  final _siteRepository = SiteRepository();
   List<SiteModel> _sites = [];
   bool _loading = true;
 
@@ -26,7 +26,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final sites = await _db.getAllSites();
+      final sites = await _siteRepository.getAllSites();
       final dueSites = sites.where((s) => s.hasRemainingPayment).toList()
         ..sort((a, b) => b.balance.compareTo(a.balance));
       if (mounted) {

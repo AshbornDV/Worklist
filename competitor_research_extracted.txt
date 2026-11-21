@@ -1,0 +1,255 @@
+
+=== PAGE 1 ===
+WORKLIST  /  PRODUCT RESEARCH
+Worklist competitor research  |  20 Nov 2026  |  1
+WORKLIST
+Construction App
+Competitor Research
+Product opportunities, workflow benchmarks and an implementation roadmap
+RESEARCH SNAPSHOT  |  20 NOVEMBER 2026
+Executive recommendation
+Worklist should differentiate by connecting the daily site record to workforce, material movements and real project 
+cost - while keeping site operations reliable offline. The highest-value next step is a Daily Site Report that reuses 
+existing attendance, inventory and payment records rather than creating duplicate data.
+Prepared from the supplied Worklist Graphify project review and publicly available product documentation / app-store 
+listings. This is a product strategy and engineering brief, not a hands-on certification of every competing app.
+=== PAGE 2 ===
+WORKLIST  /  PRODUCT RESEARCH
+Worklist competitor research  |  20 Nov 2026  |  2
+1. Executive summary
+Worklist already covers much of the core contractor workflow: sites, workers, attendance, payroll and payslips, 
+advances, products and stock, site services and payments, documents, analytics, calendar and notifications. The 
+opportunity is not to add a collection of unrelated modules. It is to make existing records flow into a reliable daily site 
+workflow and a trustworthy view of project cost.
+The strongest local references are Sitora and GharNaksa. HajariBook is a close workforce/payroll reference. Raken 
+and Fieldwire provide mature examples of field reporting, tasks, drawings and approvals. busybusy is useful for 
+labour/time costing. builDx is notable for an offline-first material/labour/costing workflow.
+Recommended product positioning
+An offline-capable construction operations platform for contractors and site teams: know what happened today, who 
+worked, what materials moved, what work progressed, what it cost and who approved it.
+What to prioritize
+Priority Opportunity Why it matters
+1 Daily Site Report
+Connects attendance, work completed, 
+photos, materials, delays and approvals 
+into one dated site record.
+2 Integrated Site Costing
+Turns existing payroll, inventory, services 
+and payments into a project-level budget-
+versus-actual view.
+3 Material Movement Ledger
+Makes stock balances auditable across 
+receipts, issues, usage, returns, transfers 
+and wastage.
+4 Tasks and Milestones Connects site progress and blockers to accountable owners and deadlines.
+5 Approval and Audit History Builds trust in payroll, stock, reports and financial records.
+6 Workforce Experience
+Improves leave, shifts, attendance locking, 
+payslip access and optional worker check-
+in.
+2. Worklist baseline from the Graphify review
+The previous review of the supplied Graphify export identified these existing product areas. Treat the list as a map for 
+repository verification, not as a substitute for checking the current source code before implementation.
+Area Existing capability indicated by the project review Product implication
+Sites Site creation/details, worker assignments and site-related payments. Use the site as the primary context for reports, tasks and costing.
+Workers Worker profiles, assignments, documents and performance. Reuse worker records; avoid a second worker directory.
+Attendance Attendance capture and worker attendance management. Daily reports should pull headcount from attendance.
+Payroll Wage calculations, advances and payslip generation. Costing should use payroll accruals, not duplicate payments.
+Inventory Products, stock records, adjustments and alerts. Extend with movement traceability only if not already present.
+Services / payments Site-related services and payment records. Integrate into project costing with payment-vs- cost distinction.
+Documents / analytics Document organization, business insights and reporting. Reuse existing document/export patterns for daily reports.
+Calendar / notifications Scheduled information and business alerts. Notify on overdue tasks, missing reports and approval requests.
+=== PAGE 3 ===
+WORKLIST  /  PRODUCT RESEARCH
+Worklist competitor research  |  20 Nov 2026  |  3
+Architecture context to preserve: Flutter + Material 3; Provider ChangeNotifiers -> repositories -> SQLite (`sqflite` / 
+`sqflite_common_ffi`) as the offline source of truth; Firebase Auth / Google Sign-In and Realtime Database 
+synchronization; Android and Windows parity. Verify each detail against the current repository before coding.
+3. Competitor benchmark
+Names are not always unique. In particular, this report treats Fiveone Digital’s HajariBook and Jagati Apps’ HajriBook 
+as separate products.
+3.1 HajariBook - Fiveone Digital
+WORKFORCE / ATTENDANCE / PAYROLL
+Documented workflow: Multiple attendance modes; QR and geofenced self-attendance; facial liveness; shifts; leave; 
+overtime; advances; incentives; attendance locking; weekly payroll; payslips; site-wise stock and petty cash.
+What Worklist should study: Study the complete attendance-to-payroll loop, supervisor site scoping, advance/loan 
+ledger, weekly settlement and slip delivery. Keep GPS/biometrics optional and privacy-sensitive.
+Verification note: Google Play listing updated 10 Nov 2026; feature claims are vendor/store listing claims.
+3.2 HajriBook - Jagati Apps
+OFFLINE LABOUR REGISTER
+Documented workflow: Offline attendance, muster rolls, daily wage calculation, overtime/paid leave, advance 
+deductions and payslips shared through WhatsApp.
+What Worklist should study: Study the low-friction supervisor workflow and offline-first simplicity.
+Verification note: Separate product from Fiveone Digital’s similarly named HajariBook; listing updated 9 Sep 2026.
+3.3 Sitora - Nepal
+CONSTRUCTION PROJECT MANAGEMENT
+Documented workflow: Daily site reports, photos, attendance, progress; Nepali/English; inventory by project/store; 
+purchase orders, goods receipts, stock issues/transfers; measurement book and RA billing; VAT/TDS, budgets and 
+approvals.
+What Worklist should study: Most relevant local benchmark for tying site records, procurement, materials, billing and 
+finance together. Study role-based owner/site/office workflows and activity history.
+Verification note: Vendor website; offline entry is described for supported site tasks.
+3.4 GharNaksa - Nepal
+CONSTRUCTION COST AND PROGRESS TRACKING
+Documented workflow: Materials, labour and payments; quantities/rates/suppliers; daily logs, weather and notes; site 
+issues; stage photos; floor-by-floor WBS/checklists; drawings; milestones; PDF statements and collaborators.
+What Worklist should study: Study a mobile-friendly site diary, client reporting, project stages and supplier/payment 
+balances.
+Verification note: Vendor website; claims and feature availability should be checked in-app.
+3.5 Raken
+FIELD REPORTING / DAILY LOGS
+Documented workflow: Daily reports with work logs, notes, photos/videos, time, safety, cost codes, materials and 
+equipment; exportable PDF/CSV/XLS reports; scheduled report delivery; AI summaries advertised.
+What Worklist should study: Study structured daily reports, supervisor submissions, manpower reports, customizable 
+report sections and automated summaries.
+Verification note: Official feature page and Help Center; some report types are web-app/export workflows.
+=== PAGE 4 ===
+WORKLIST  /  PRODUCT RESEARCH
+Worklist competitor research  |  20 Nov 2026  |  4
+3.6 Fieldwire by Hilti
+DRAWINGS / TASKS / INSPECTIONS
+Documented workflow: Plan viewing and versioning, markups, tasks pinned to plans, punch lists, inspections, 
+checklists, forms, photos/videos and offline field use.
+What Worklist should study: Study attaching tasks/issues to the exact drawing/location, checklists, issue history and 
+offline plan access.
+Verification note: Offline mobile access depends on content being downloaded; sync occurs after reconnecting.
+3.7 busybusy
+CONSTRUCTION TIME TRACKING / JOB COSTING
+Documented workflow: GPS timecards, employee/equipment tracking, signatures, budgets, daily reports, progress 
+photos, safety/time sign-off, budget-versus-actual and offline time-clock.
+What Worklist should study: Study labour/equipment hour costing, daily sign-off evidence and project budget-versus-
+actual reporting.
+Verification note: Vendor website; free trial and paid-plan details can change.
+3.8 builDx - Construction Reporter
+OFFLINE PROJECT COST / SITE DIARY
+Documented workflow: Material purchases, labour charges, advances, services, estimates, planned-versus-actual 
+tracking, daily photo/note logs and expense reports; optional Google Drive sync.
+What Worklist should study: Study its focused offline model, local-first privacy approach and simple site-cost report.
+Verification note: Google Play listing says updated 8 Jul 2026 and describes an early release.
+4. Recommended Worklist product opportunities
+4.1 Daily Site Report - highest priority
+Create one dated report per site. It should be prefilled from records already entered in Worklist, so supervisors do not 
+have to enter attendance and material facts twice.
+ Site, date, supervisor, report status and submission/approval timestamps.
+ Work completed, work in progress, blocked work and delays.
+ Attendance/headcount and labour hours linked to the existing attendance record.
+ Material receipts, issues, consumption, returns and wastage linked to inventory movements.
+ Services/equipment notes, progress photographs, attachments and timestamps.
+ Optional weather, safety/quality observations and general notes.
+ Professional PDF export and share action, using the existing document/reporting stack.
+Suggested workflow: open site -> Today’s Work -> review prefilled attendance/materials -> add work 
+notes/photos/exceptions -> save draft -> submit -> approve -> share PDF. Allow drafts offline and sync them 
+idempotently.
+4.2 Integrated Site Costing
+Create a financial overview that brings together labour cost, material cost, service cost and other approved expenses. 
+Show budget, actual cost, committed cost (only where purchase orders exist), paid amount and remaining budget as 
+distinct figures.
+Accounting guardrail
+Do not count the same expense twice. A stock purchase, site transfer, material issue and material consumption are 
+different events. A transfer is not a new company-wide cost. A wage/supplier payment should not re-add a cost 
+already counted as accrued.
+=== PAGE 5 ===
+WORKLIST  /  PRODUCT RESEARCH
+Worklist competitor research  |  20 Nov 2026  |  5
+4.3 Material Movement Ledger
+Where Worklist currently stores balances or adjustments without full traceability, introduce a ledger for receipt, issue to 
+site, consumption, return, inter-site transfer and wastage/damage. Each movement should retain quantity/unit, source, 
+destination, date, user, reason and optional bill/challan/photo. Corrections should be traceable rather than silently 
+overwriting history.
+4.4 Tasks and Milestones
+Add a lightweight work breakdown by site stage and task. Each task should have an owner/team, start and due dates, 
+status, progress, priority, blockers, checklist and photos. Start with a simple list/Kanban and timeline; avoid building a 
+heavyweight BIM or full scheduling platform in the first phase.
+4.5 Workforce, approvals and safety
+Audit existing functionality before building. Candidate improvements include attendance locking before payroll, leave 
+and shift handling, site-scoped supervisor permissions, optional QR/GPS verification, worker payslip access, 
+advance/loan ledgers, audit history, safety checklists and incident records. GPS or biometrics should never be 
+mandatory by default; provide a non-location supervisor workflow and clear permission explanations.
+4.6 Nepal-specific usability
+Evaluate Nepali/English interface text, BS/AD date display, Asia/Kathmandu timezone defaults, NPR formatting and 
+carefully configurable VAT/TDS or RA-bill support. Store dates canonically and convert for display. Do not hard-code 
+tax rates or legal rules without current verification.
+5. Suggested delivery roadmap
+Phase Scope Exit criteria
+0. Audit
+Map existing features, data models, routes, 
+repositories, SQLite schema/migrations, sync, 
+permissions and test baseline.
+Feature gap matrix with file-level evidence; no 
+unnecessary duplicate module.
+1. Daily Site Report
+Report per site/date; reuse attendance and 
+materials; offline draft/submit; photo 
+attachments; PDF export; approval metadata.
+Offline creation and reconnect sync pass; no 
+duplicate records; tests and platform checks 
+pass.
+2. Site Costing
+Unified cost view with 
+labour/material/services/expenses, budget and 
+paid-vs-accrued distinction.
+Calculation rules documented; no double 
+counting; totals reconcile with source records.
+3. Material Ledger Receive, issue, consume, return, transfer and wastage history. Stock balances reconcile; movement audit trail and sync tests pass.
+4. Tasks / Milestones Lightweight WBS, task owners, dates, progress, blockers, photos and checklists. Offline edits sync; task status and overdue notifications work.
+5. Controls / Workforce
+Attendance lock, leave/shift improvements, 
+site-scoped roles, payslip access, audit and 
+safety records.
+Permission tests and sensitive-data checks 
+pass.
+6. Suggested navigation and signature workflow
+Keep the main navigation recognizable. Add one strong cross-module workflow rather than more disconnected 
+dashboard cards.
+Site area Purpose
+Overview Progress, budget health, pending approvals and alerts.
+Workforce Assigned workers, attendance, leave and labour hours.
+Payroll Wage cost, advances, settlements and payslips.
+Materials Stock balance, receipts, issues, consumption and transfers.
+Daily Reports Date-based site diary, photos, blockers and approvals.
+Tasks Stages, milestones, assignees and issues.
+Services Contractors, service records and payments.
+=== PAGE 6 ===
+WORKLIST  /  PRODUCT RESEARCH
+Worklist competitor research  |  20 Nov 2026  |  6
+Site area Purpose
+Documents Drawings, bills, challans, reports and attachments.
+Finance Budget, actual/committed cost, expenses and payments.
+Signature screen: Today’s Work
+Show workers present, today’s labour cost, tasks in progress and pending approvals. Then give a short checklist: 
+review attendance, review material deliveries, update progress, submit daily report and close/approve daily records.
+7. Engineering constraints for Worklist
+ Preserve Flutter + Material 3 and the existing Provider -> repository -> SQLite architecture; no rewrite or new 
+state-management framework.
+ Keep SQLite as the offline source of truth; maintain safe migrations and backward compatibility.
+ Use existing Firebase RTDB paths and sync conventions; handle stable IDs, idempotent retries, conflict states and 
+attachments deliberately.
+ Keep Android and Windows parity, including sqflite_common_ffi, local file access, notifications and PDF handling.
+ Do not move database or Firebase calls into widgets if repository patterns already exist.
+ Add unit/repository/provider/UI tests for local persistence, migrations, offline work, repeated sync, duplicate 
+submit, permission denial and app restart.
+ Keep worker information private; do not log tokens, credentials or personal data.
+ No broad rewrite. Deliver one vertical slice at a time and document every schema/sync change.
+8. Claude Code implementation prompt
+A separate Markdown file is included with this report. It contains a complete copy-ready prompt for Claude Code, 
+including the competitor findings, Worklist architecture context, audit steps, phased requirements, offline/sync 
+constraints, test requirements and acceptance criteria.
+Download: Worklist_Claude_Code_Implementation_Prompt.md
+9. Sources and verification notes
+Public product pages, official help documentation and app-store listings were checked for this report on 20 November 
+2026. Vendor descriptions are treated as claims about product capability, not independent product testing. Product 
+availability, pricing, quotas and plan restrictions may change.
+HajariBook (Fiveone Digital) - Google Play - Features and 10 Nov 2026 listing update.
+HajriBook (Jagati Apps) - Google Play - Offline attendance, muster roll and wage workflow; 9 Sep 2026 update.
+Sitora - official product site - Nepal construction workflows, inventory, reports, billing and roles.
+GharNaksa - official product site - Materials, labour, payments, logs, issues, WBS and PDF sharing.
+Raken - Daily Reports - Field capture, attachments, safety, materials/equipment and AI summaries.
+Raken Help Center - Reports overview - Report types, exports and scheduled reports.
+Fieldwire - official product site - Tasks, plans, punch lists, forms and field collaboration.
+Fieldwire Help Center - Offline use - Offline mobile access and sync caveats.
+busybusy - official product site - Timecards, GPS, budgets, daily reports, progress photos and offline mode.
+builDx - Google Play - Offline-first material/labour/advance tracking; listing dated 8 Jul 2026.
+Limitations: The competitor review is based on public documentation and store listings, not hands-on testing of each 
+application. The Worklist baseline reflects the supplied Graphify project review; verify the current repository before 
+changing code. Feature absence from a Graphify snapshot does not prove that a capability is absent from every 
+branch or implementation path.

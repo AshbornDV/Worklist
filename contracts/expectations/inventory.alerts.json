@@ -1,0 +1,32 @@
+[
+  {
+    "id": 3,
+    "name": "Paint",
+    "barcode": "PNT-003",
+    "rate": 800.0,
+    "unit": "litre",
+    "stock": 1.0,
+    "lowStockThreshold": 10.0,
+    "criticalStockThreshold": 2.0
+  },
+  {
+    "id": 1,
+    "name": "Cement",
+    "barcode": "CEM-001",
+    "rate": 550.0,
+    "unit": "bag",
+    "stock": 2.0,
+    "lowStockThreshold": 10.0,
+    "criticalStockThreshold": 2.0
+  },
+  {
+    "id": 2,
+    "name": "Steel Rod",
+    "barcode": "STL-002",
+    "rate": 1200.0,
+    "unit": "ton",
+    "stock": 7.0,
+    "lowStockThreshold": 10.0,
+    "criticalStockThreshold": 2.0
+  }
+]

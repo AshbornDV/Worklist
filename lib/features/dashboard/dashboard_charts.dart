@@ -203,7 +203,10 @@ class SiteProgressChart extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: data.length * 40.0,
+              // Must stay tall enough for the axis + bar area. `length * 40`
+              // gave a 40dp chart while the bottom titles reserved 100dp, so a
+              // single site overflowed the card by ~60dp.
+              height: (data.length * 40.0).clamp(180.0, 420.0),
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
@@ -219,7 +222,7 @@ class SiteProgressChart extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 100,
+                        reservedSize: 48,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
                           if (index >= 0 && index < data.length) {
@@ -330,7 +333,9 @@ class MaterialUsageChart extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: data.length * 35.0,
+              // Same defect as Site Progress: the bar area shrank below the
+              // bottom axis reservation for small data sets.
+              height: (data.length * 35.0).clamp(180.0, 420.0),
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
@@ -346,7 +351,7 @@ class MaterialUsageChart extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 120,
+                        reservedSize: 56,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
                           if (index >= 0 && index < data.length) {

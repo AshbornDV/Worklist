@@ -50,7 +50,5 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    // Exposed for our custom Application/BootReceiver that reference WorkManager
-    // directly (the workmanager plugin keeps work-runtime as `implementation`).
     implementation("androidx.work:work-runtime:2.9.0")
 }

@@ -53,6 +53,9 @@ app.*.map.json
 # Repomix generated context
 repomix-output.*
 
+# API key files (never commit these)
+llm-api-keys/
+
 # Local tooling noise (not part of the app)
 graphify-out/cache/
 docs/graphify-out/cache/

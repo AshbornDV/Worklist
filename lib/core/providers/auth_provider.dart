@@ -37,6 +37,8 @@ class AuthProvider extends ChangeNotifier {
   /// haven't uploaded yet.
   Timer? _autoPullTimer;
   AppLifecycleListener? _lifecycleListener;
+  bool _disposed = false;
+  bool _notifyScheduled = false;
   static const Duration _autoPullInterval = Duration(seconds: 30);
 
   /// Incremented every time a cloud pull successfully imports new data into
@@ -74,8 +76,31 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    // The 30-second auto-pull timer and the lifecycle listener outlive the
+    // widget tree unless cancelled here; a late tick used to notify a disposed
+    // notifier.
+    _stopAutoPull();
     FirebaseAuthListener.instance.stop();
     super.dispose();
+  }
+
+  // ── Safe notification ────────────────────────────────────────────────────
+  /// Auth notifications also originate outside the build phase: the auto-pull
+  /// timer, cloud pull callbacks, FCM handlers and the auth-state listener.
+  /// This provider is GoRouter's `refreshListenable`, so a synchronous notify
+  /// from one of those can re-run `redirect` while a route is being torn down,
+  /// which trips Flutter's `Element.deactivate()` invariant
+  /// (`_dependents.isEmpty`). Deferring to a microtask moves the notification
+  /// out of the current frame and coalesces bursts into one rebuild.
+  void _safeNotify() {
+    if (_disposed || _notifyScheduled) return;
+    _notifyScheduled = true;
+    scheduleMicrotask(() {
+      _notifyScheduled = false;
+      if (_disposed) return;
+      notifyListeners();
+    });
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -86,22 +111,22 @@ class AuthProvider extends ChangeNotifier {
   Future<void> initialize() async {
     await FirebaseConfig.ensureLoaded();
 
-    // Wait for Firebase Auth to finish restoring the persisted credential
-    // before any cloud sync. On Windows/desktop the credential is restored
-    // asynchronously and FirebaseAuth.currentUser is null at this point;
-    // proceeding early makes the startup pull read a null (or Google
-    // silent-sign-in fallback) uid. Awaiting the first authenticated user
-    // guarantees _firebaseUid is applied before the first pull, and prevents
-    // the Google silent-restoration fallback from selecting a wrong session
-    // while auth is still pending.
+    // Wait for Firebase Auth to restore the persisted credential before any
+    // cloud sync: on desktop the restore is async and currentUser is still
+    // null here, so proceeding early would run the startup pull against a null
+    // (or wrong Google-fallback) uid.
+    //
+    // Take the FIRST auth-state emission, not the first non-null one: on a
+    // fresh install (or after logout) no user is ever emitted, and waiting for
+    // one held the splash screen for the full timeout before the login screen
+    // appeared.
     try {
       await FirebaseAuth.instance
           .authStateChanges()
-          .firstWhere((u) => u != null)
-          .timeout(const Duration(seconds: 10));
+          .first
+          .timeout(const Duration(seconds: 3));
     } on TimeoutException {
-      // No authenticated user yet (brand-new / fresh install). Proceed; the
-      // startup pull is skipped and sync happens after an explicit login.
+      // Auth has not settled; proceed and let the listeners catch up.
     }
 
     // Capture the uid we synced at startup so the auth-state listener does
@@ -148,7 +173,7 @@ class AuthProvider extends ChangeNotifier {
 
     _initialized = true;
     _startAutoPull();
-    notifyListeners();
+    _safeNotify();
   }
 
   // ── Auto-pull (cross-device convergence) ─────────────────────────────────
@@ -204,7 +229,7 @@ class AuthProvider extends ChangeNotifier {
           _cloudDataVersion++;
           debugPrint(
               '[Sync] Pull succeeded ($reason). cloudDataVersion=$_cloudDataVersion');
-          notifyListeners(); // screens watching cloudDataVersion will reload
+          _safeNotify(); // screens watching cloudDataVersion will reload
           break;
         case CloudPullResult.empty:
           // Cloud is GENUINELY empty — push local data if we have any so the
@@ -268,7 +293,7 @@ class AuthProvider extends ChangeNotifier {
     if (user == null) {
       if (_handlingLocalSignOut) return;
       _cloud.clearSession();
-      notifyListeners();
+      _safeNotify();
       return;
     }
 
@@ -300,7 +325,7 @@ class AuthProvider extends ChangeNotifier {
 
     // Always pull from cloud — cloud is source of truth.
     await _pullFromCloudOrFallback(user.id!, reason: 'restore-local-user');
-    notifyListeners();
+    _safeNotify();
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -312,7 +337,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
 
     final cleanedUsername = username.trim().toLowerCase();
     final localUser = await _auth.authenticate(cleanedUsername, password);
@@ -328,7 +353,7 @@ class AuthProvider extends ChangeNotifier {
       await _pullFromCloudOrFallback(user.id!, reason: 'login');
 
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       _cloud.runDiagnostics();
       return true;
     } catch (e) {
@@ -342,12 +367,12 @@ class AuthProvider extends ChangeNotifier {
         _cloudNotice =
             'Signed in on this device. Your account will open automatically next time.';
         _isLoading = false;
-        notifyListeners();
+        _safeNotify();
         return true;
       }
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -357,13 +382,13 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
 
     final cleanedEmail = email.trim().toLowerCase();
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(cleanedEmail)) {
       _error = 'Enter a valid email address';
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
 
@@ -371,12 +396,12 @@ class AuthProvider extends ChangeNotifier {
       await _cloud.sendEmailLink(cleanedEmail);
       _cloudNotice = 'Sign-in link sent to $cleanedEmail. Check your email and open the link here to continue.';
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -388,7 +413,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
 
     try {
       final cleanedUsername = username.trim().toLowerCase();
@@ -406,7 +431,7 @@ class AuthProvider extends ChangeNotifier {
             'Account created on this device. Cloud sync will retry when Firebase is available.';
       }
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e) {
       if (_cloud.isRecoverableCloudBlock(e)) {
@@ -418,12 +443,12 @@ class AuthProvider extends ChangeNotifier {
         _cloudNotice =
             'Account saved on this device. Cloud sync will retry when Firebase is available.';
         _isLoading = false;
-        notifyListeners();
+        _safeNotify();
         return true;
       }
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -435,7 +460,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
 
     try {
       await _cloud.linkEmail(email);
@@ -444,12 +469,12 @@ class AuthProvider extends ChangeNotifier {
         await _cloud.uploadLocalUser(userId, reason: 'link-email');
       }
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -478,7 +503,7 @@ class AuthProvider extends ChangeNotifier {
     if (pulled) {
       _lastSyncedAt = DateTime.now();
       _cloudDataVersion++;
-      notifyListeners();
+      _safeNotify();
     }
     return pulled;
   }
@@ -502,7 +527,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
 
     try {
       // Retrieve the email that was used to send the link.
@@ -510,7 +535,7 @@ class AuthProvider extends ChangeNotifier {
       if (email == null) {
         _error = 'No sign‑in email stored. Send a new link first.';
         _isLoading = false;
-        notifyListeners();
+        _safeNotify();
         return false;
       }
 
@@ -518,7 +543,7 @@ class AuthProvider extends ChangeNotifier {
       if (!FirebaseAuth.instance.isSignInWithEmailLink(receivedLink)) {
         _error = 'This link is not valid for email‑link sign‑in.';
         _isLoading = false;
-        notifyListeners();
+        _safeNotify();
         return false;
       }
 
@@ -541,13 +566,13 @@ class AuthProvider extends ChangeNotifier {
       await _pullFromCloudOrFallback(localUser.id!, reason: 'email-link');
 
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       _cloud.runDiagnostics();
       return true;
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -558,14 +583,14 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> signInWithGoogle() async {
     if (!FirebaseConfig.isGoogleSignInConfigured) {
       _error = FirebaseConfig.googleSignInUnavailableMessage();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
 
     _isLoading = true;
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
 
     final firebaseUser = FirebaseAuth.instance.currentUser;
     final alreadySignedInToFirebase = firebaseUser != null;
@@ -589,12 +614,12 @@ class AuthProvider extends ChangeNotifier {
         }
 
         _isLoading = false;
-        notifyListeners();
+        _safeNotify();
         return true;
       } catch (e) {
         _error = e.toString().replaceFirst('Exception: ', '');
         _isLoading = false;
-        notifyListeners();
+        _safeNotify();
         return false;
       }
     }
@@ -604,7 +629,7 @@ class AuthProvider extends ChangeNotifier {
           'Sign in with your username and password first to connect to Firebase, '
           'then tap "Sign in with Google" to link your Google account.';
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
 
@@ -637,13 +662,13 @@ class AuthProvider extends ChangeNotifier {
       }
 
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e) {
       await _signOutLocally(clearCloud: true);
       _error = e.toString().replaceFirst('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -654,7 +679,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _stopAutoPull();
     await _signOutLocally(clearCloud: true);
-    notifyListeners();
+    _safeNotify();
   }
 
   Future<void> _signOutLocally({required bool clearCloud}) async {
@@ -678,6 +703,6 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     _cloudNotice = null;
-    notifyListeners();
+    _safeNotify();
   }
 }

@@ -48,15 +48,6 @@ class StatCard extends StatelessWidget {
     final bg = bgColor ?? cs.primaryContainer;
     final ic = iconColor ?? cs.primary;
 
-    final iconBox = Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Icon(icon, color: ic, size: 24),
-    );
-
     final texts = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -109,21 +100,25 @@ class StatCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Below ~170px the horizontal row leaves the text ~60px, which
-              // truncates every label. Stack instead.
-              if (constraints.maxWidth < 170) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [iconBox, const SizedBox(height: 10), texts],
-                );
-              }
+              // Keep the horizontal icon+text row at every width; just shrink
+              // the icon and its padding when the tile is narrow. The previous
+              // "stack vertically below 170px" rule made the card taller
+              // exactly when vertical space was scarcest, which overflowed
+              // every dashboard stat card.
+              final tight = constraints.maxWidth < 150;
+              final box = Container(
+                padding: EdgeInsets.all(tight ? 8 : 12),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(tight ? 10 : 14),
+                ),
+                child: Icon(icon, color: ic, size: tight ? 20 : 24),
+              );
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  iconBox,
-                  const SizedBox(width: 14),
+                  box,
+                  SizedBox(width: tight ? 8 : 14),
                   Expanded(child: texts),
                 ],
               );
@@ -358,7 +353,12 @@ class EmptyState extends StatelessWidget {
             ],
             if (action != null) ...[
               const SizedBox(height: 20),
-              action!,
+              // Keep the call to action a normal button size. Without a cap it
+              // stretches to the full panel width on wide screens.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: SizedBox(width: double.infinity, child: action!),
+              ),
             ],
           ],
         ),

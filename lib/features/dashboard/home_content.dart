@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/database/database_helper.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/store_product_provider.dart';
+import '../../core/repositories/dashboard_repository.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../core/services/collection_reminder_service.dart';
 import '../../features/dashboard/dashboard_charts.dart';
@@ -21,6 +23,7 @@ class HomeContent extends StatefulWidget {
 
 class _HomeContentState extends State<HomeContent> {
   final _db = DatabaseHelper();
+  final _dashRepo = DashboardRepository();
   Map<String, dynamic>? _stats;
   List<dynamic> _stockAlerts = [];
   List<Map<String, dynamic>> _activity = [];
@@ -44,12 +47,12 @@ class _HomeContentState extends State<HomeContent> {
     final store = context.read<StoreProductProvider>();
     setState(() => _loading = true);
     try {
-      final stats = await _db.getDashboardStats();
+      final stats = await _dashRepo.getDashboardStats();
       final stockAlerts = await store.getStockAlertProducts();
-      final activity = await _db.getRecentActivity(limit: 8);
-      final attendance = await _db.getAttendanceChartData();
-      final siteProgress = await _db.getSiteProgressChartData();
-      final materialUsage = await _db.getMaterialUsageChartData();
+      final activity = await _dashRepo.getRecentActivity(limit: 8);
+      final attendance = await _dashRepo.getAttendanceChartData();
+      final siteProgress = await _dashRepo.getSiteProgressChartData();
+      final materialUsage = await _dashRepo.getMaterialUsageChartData();
       if (mounted) {
         setState(() {
           _stats = stats;
@@ -124,7 +127,10 @@ class _HomeContentState extends State<HomeContent> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 600;
+    // Only use the desktop composition at tablet/desktop width. Between 600 and
+    // 840dp the wide layout has too little room: the 4-column stat grid and the
+    // 3-across chart row clip their labels and force one-character-per-line text.
+    final isWide = width >= 840;
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -206,7 +212,11 @@ class _HomeContentState extends State<HomeContent> {
       SiteProgressChart(data: _siteProgress),
       MaterialUsageChart(data: _materialUsage),
     ];
-    if (!isWide) {
+    // Three charts side by side only when there is genuinely room for them.
+    // Below that, each chart gets its own row so empty-state text stays
+    // horizontal instead of wrapping one character per line.
+    final canFitRow = MediaQuery.of(context).size.width >= 900;
+    if (!canFitRow) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -335,7 +345,7 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 600;
+    final isWide = MediaQuery.of(context).size.width >= 840;
 
     // Data-bound trend labels (change as the underlying data changes).
     final activeSites = (stats['activeSites'] as int? ?? 0);
@@ -352,10 +362,11 @@ class _StatsGrid extends StatelessWidget {
     final tPresent = activeWorkers > 0
         ? '$present of $activeWorkers present'
         : 'No workers yet';
+    // CurrencyText.format already includes the "Rs." prefix.
     final tPending = totalCost > 0
-        ? 'Rs. ${CurrencyText.format(pending)} of ${CurrencyText.format(totalCost)}'
+        ? '${CurrencyText.format(pending)} of ${CurrencyText.format(totalCost)}'
         : pending > 0
-            ? 'Rs. ${CurrencyText.format(pending)} outstanding'
+            ? '${CurrencyText.format(pending)} outstanding'
             : 'All settled';
 
     final cards = [
@@ -431,13 +442,19 @@ class _StatsGrid extends StatelessWidget {
     ];
 
     final columns = isWide ? 4 : 2;
-    return GridView.count(
-      crossAxisCount: columns,
+    // Fixed row height instead of a width-derived aspect ratio: the old
+    // `childAspectRatio` produced ~97dp tall cards that could not hold the
+    // icon + value + two-line label, so every card overflowed.
+    return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: isWide ? 2.6 : 1.75,
+      padding: EdgeInsets.zero,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: isWide ? 110 : 126,
+      ),
       children: cards,
     );
   }

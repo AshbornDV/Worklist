@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../firebase/firebase_cloud_service.dart';
 import '../models/advance_payment_model.dart';
@@ -48,6 +49,8 @@ class WorkerProvider extends ChangeNotifier {
   List<AdvancePaymentModel> _pendingAdvances = [];
   bool _workersLoading = false;
   String? _error;
+  bool _disposed = false;
+  bool _notifyScheduled = false;
 
   /// Incremented by [clear] to invalidate all in-flight async loads,
   /// preventing stale previous-user data from being written back after logout.
@@ -68,6 +71,26 @@ class WorkerProvider extends ChangeNotifier {
   int get activeWorkerCount =>
       _workers.where((w) => w.status == 'active').length;
 
+  /// ── Safe notification ──────────────────────────────────────────────────────
+  /// Similar to AuthProvider, this provider may receive notifications from
+  /// async callbacks outside the build phase. Schedule notifyListeners as a
+  /// microtask to avoid calling it on a disposed ChangeNotifier.
+  void _safeNotify() {
+    if (_disposed || _notifyScheduled) return;
+    _notifyScheduled = true;
+    scheduleMicrotask(() {
+      _notifyScheduled = false;
+      if (_disposed) return;
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   /// Clears all cached data and invalidates any in-flight loads.
   /// Call this on logout so stale previous-user data never appears.
   void clear() {
@@ -78,7 +101,7 @@ class WorkerProvider extends ChangeNotifier {
     _pendingAdvances = [];
     _workersLoading = false;
     _error = null;
-    notifyListeners();
+    _safeNotify();
   }
 
   // ─────────────── WORKERS ───────────────
@@ -86,7 +109,7 @@ class WorkerProvider extends ChangeNotifier {
   Future<void> loadWorkers() async {
     final gen = _generation;
     _workersLoading = true;
-    notifyListeners();
+    _safeNotify();
     try {
       final result = await _repo.getAllWorkers();
       if (_generation != gen) return;
@@ -97,7 +120,7 @@ class WorkerProvider extends ChangeNotifier {
     } finally {
       if (_generation == gen) {
         _workersLoading = false;
-        notifyListeners();
+        _safeNotify();
       }
     }
   }
@@ -109,12 +132,12 @@ class WorkerProvider extends ChangeNotifier {
       final id = await _repo.insertWorker(worker);
       _workers.add(worker.copyWith(id: id));
       _workers.sort((a, b) => a.name.compareTo(b.name));
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -124,12 +147,12 @@ class WorkerProvider extends ChangeNotifier {
       await _repo.updateWorker(worker);
       final idx = _workers.indexWhere((w) => w.id == worker.id);
       if (idx != -1) _workers[idx] = worker;
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -140,12 +163,12 @@ class WorkerProvider extends ChangeNotifier {
       await _repo.deleteWorkerDocumentsByWorker(id);
       await _repo.deleteWorkerPerformanceByWorker(id);
       _workers.removeWhere((w) => w.id == id);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -177,12 +200,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> addWorkerDocument(WorkerDocument document) async {
     try {
       await _repo.insertWorkerDocument(document);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -190,12 +213,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> deleteWorkerDocument(int id) async {
     try {
       await _repo.deleteWorkerDocument(id);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -216,12 +239,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> addWorkerPerformance(WorkerPerformance performance) async {
     try {
       await _repo.insertWorkerPerformance(performance);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -229,12 +252,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> updateWorkerPerformance(WorkerPerformance performance) async {
     try {
       await _repo.updateWorkerPerformance(performance);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -242,12 +265,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> deleteWorkerPerformance(int id) async {
     try {
       await _repo.deleteWorkerPerformance(id);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -309,12 +332,12 @@ class WorkerProvider extends ChangeNotifier {
       } else {
         await _payroll.insertPayroll(payroll);
       }
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -322,12 +345,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> deletePayroll(int id) async {
     try {
       await _payroll.deletePayroll(id);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -335,12 +358,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> markPayrollPaid(int id) async {
     try {
       await _payroll.setPayrollStatus(id, 'paid');
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -349,7 +372,7 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<void> loadAttendance(int workerId, {int? year, int? month}) async {
     final gen = _generation;
-    notifyListeners();
+    _safeNotify();
     try {
       final result = await _repo.getAttendanceByWorker(
         workerId,
@@ -363,7 +386,7 @@ class WorkerProvider extends ChangeNotifier {
       _error = e.toString();
     } finally {
       if (_generation == gen) {
-        notifyListeners();
+        _safeNotify();
       }
     }
   }
@@ -378,12 +401,12 @@ class WorkerProvider extends ChangeNotifier {
   Future<bool> recordAttendance(AttendanceModel attendance) async {
     try {
       await _repo.upsertAttendance(attendance);
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -392,7 +415,7 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<void> loadAdvances(int workerId) async {
     final gen = _generation;
-    notifyListeners();
+    _safeNotify();
     try {
       final result = await _repo.getAdvancesByWorker(workerId);
       if (_generation != gen) return;
@@ -402,14 +425,14 @@ class WorkerProvider extends ChangeNotifier {
       _error = e.toString();
     } finally {
       if (_generation == gen) {
-        notifyListeners();
+        _safeNotify();
       }
     }
   }
 
   Future<void> loadPendingAdvances() async {
     final gen = _generation;
-    notifyListeners();
+    _safeNotify();
     try {
       final result = await _repo.getAllPendingAdvances();
       if (_generation != gen) return;
@@ -419,7 +442,7 @@ class WorkerProvider extends ChangeNotifier {
       _error = e.toString();
     } finally {
       if (_generation == gen) {
-        notifyListeners();
+        _safeNotify();
       }
     }
   }
@@ -428,12 +451,12 @@ class WorkerProvider extends ChangeNotifier {
     try {
       final id = await _repo.insertAdvance(advance);
       _advances.insert(0, advance.copyWith(id: id));
-      notifyListeners();
+      _safeNotify();
       _syncCloud();
       return true;
     } catch (e) {
       _error = e.toString();
-      notifyListeners();
+      _safeNotify();
       return false;
     }
   }
@@ -513,7 +536,7 @@ class WorkerProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
-    notifyListeners();
+    _safeNotify();
   }
 
   Future<void> reloadAll() async {

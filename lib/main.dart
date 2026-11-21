@@ -15,18 +15,19 @@ import 'core/firebase/firebase_notification_handler.dart';
 import 'core/providers/auth_provider.dart' as worklist_auth;
 import 'core/providers/theme_provider.dart';
 import 'core/providers/site_provider.dart';
+import 'core/providers/worker_provider.dart';
 import 'core/providers/store_product_provider.dart';
 import 'core/providers/user_service_provider.dart';
-import 'core/providers/worker_provider.dart';
 import 'core/sync/sync_service.dart';
 import 'features/documents/services/document_permissions.dart';
+import 'core/notifications/background/background_notification_callback.dart';
 
-/// Top-level FCM background message handler. Must be static/top-level and
-/// registered BEFORE Firebase is used, otherwise a data-only message arriving
-/// while the app is killed has no handler and is silently dropped.
+/// Top-level background message handler with VM entry-point pragma.
+/// This MUST be a top-level function for FCM background messages to work correctly.
+/// The @pragma('vm:entry-point') ensures proper compiler behavior in release mode.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('[FCM] background message: ${message.messageId}');
+  // This runs in a separate isolate, so we call the static handler method
   await FirebaseNotificationHandler.handleBackgroundMessage(message);
 }
 
@@ -39,6 +40,8 @@ void main() async {
   }
 
   await initializeFirebase();
+  // Register the FCM background handler BEFORE any async operations
+  // This must happen early in main() to work correctly
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await FirebaseNotificationHandler.instance.initialize();
   await _requestPermissions();
@@ -47,6 +50,10 @@ void main() async {
   if (Platform.isAndroid) {
     await DocumentPermissions.instance.requestNotificationsAtLaunch();
   }
+
+  // Initialize WorkManager for background notification sync. This must be
+  // called before runApp() to register the periodic task on Android.
+  await initializeBackgroundScheduling();
 
   // Wire the database write hook to the cloud-sync layer so ANY local
   // user-data mutation (from providers OR screens) pushes to Firebase.

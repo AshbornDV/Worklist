@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "package": "com.example.worklist"
+      },
+      "ios": {
+        "bundleId": "com.example.worklist"
+      },
+      "web": {
+        "appId": "1:867700541514:web:f75f3c3ce0b7d1c52afeb3"
+      },
+      "windows": {
+        "appId": "1:867700541514:web:f75f3c3ce0b7d1c52afeb3"
+      },
+      "linux": {
+        "appId": "1:867700541514:web:f75f3c3ce0b7d1c52afeb3"
+      },
+      "macos": {
+        "appId": "1:867700541514:web:f75f3c3ce0b7d1c52afeb3"
+      }
+    }
+  }
+}

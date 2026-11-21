@@ -1,4 +1,5 @@
 import '../database/database_helper.dart';
+import '../models/product_model.dart';
 import '../models/store_product_model.dart';
 
 /// Repository layer for the global store inventory: store products, stock
@@ -46,4 +47,11 @@ class InventoryRepository {
 
   Future<List<StoreProduct>> getStockAlertProducts({int limit = 5}) =>
       _db.getStockAlertProducts(limit: limit);
+
+  // ─────────────── PRODUCTS (site delivery) ───────────────
+
+  /// Read-only: all products across the current user's sites.
+  /// Returns ProductModel list (NOT StoreProduct).
+  /// Used by Calendar to surface material delivery reminders.
+  Future<List<ProductModel>> getAllProducts() => _db.getAllProducts();
 }
