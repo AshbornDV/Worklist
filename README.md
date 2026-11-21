@@ -32,14 +32,27 @@ Featuring a **local-first SQLite architecture** with multi-device Firebase cloud
 
 ---
 
+## Professional UI Showcase
+
+![Worklist Dashboard](https://i.imgur.com/placeholder1.png)  
+*Dashboard with real-time analytics, worker assignments, and site overview*
+
+![Worklist Site Detail](https://i.imgur.com/placeholder2.png)  
+*Site detail view showing active workers, tasks, and resource allocation*
+
+![Worklist Payroll](https://i.imgur.com/placeholder3.png)  
+*Payroll management interface with advance payment tracking and salary calculations*
+
+> **Note**: Replace the placeholder images with actual screenshots from your device. Screenshots should be taken from real device usage to showcase the responsive layout across phone, tablet, and desktop platforms. The UI maintains consistent styling using Material Design components with custom branding.
+
 ## Platforms
 
-| Platform | Target | Build |
-|----------|--------|-------|
+| Platform | Target | Build Command |
+|----------|--------|---------------|
 | Windows | Desktop (x64) | `flutter build windows --release` |
 | Android | Phone / tablet | `flutter build apk --release` |
 
-Responsive layout adapts across phone (<600dp), tablet (600–1023dp) and desktop (≥1024dp). Handheld form factors always use the compact phone layout; Windows uses the full responsive shell.
+> **Windows Note**: Requires Visual Studio 2022 with C++ desktop development workload. See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed setup instructions.
 
 ---
 
@@ -74,7 +87,7 @@ See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full component map.
 ### Prerequisites
 
 - Flutter SDK >= 3.2.0
-- Android SDK (Android builds) or Visual Studio with Desktop C++ workload (Windows builds)
+- Android SDK (Android builds) or Visual Studio 2022 with C++ workload (Windows builds)
 - A Firebase project with Auth (Google) and Realtime Database enabled
 
 ### Run Locally
@@ -84,7 +97,7 @@ git clone https://github.com/AshbornDV/Worklist.git
 cd Worklist
 flutter pub get
 
-flutter run -d windows              # desktop
+flutter run -d windows              # desktop (requires Windows setup)
 flutter run -d <android-device>     # Android
 ```
 
@@ -123,7 +136,7 @@ lib/
 Releases are published under the repository **Releases** tab. Local build outputs:
 
 - `build/app/outputs/apk/release/app-release.apk` — Android release
-- `build/windows/x64/runner/Release/` — Windows release folder
+- `build/windows/x64/runner/Release/` — Windows release folder (when build environment is configured)
 
 ---
 
