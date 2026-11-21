@@ -13,25 +13,6 @@
 
 ---
 
-## Overview
-
-**Worklist** is a comprehensive field-operations suite tailored for construction and site managers. It provides seamless management of sites, workers, daily attendance, payroll, advance payments, construction payments, inventory/stock, services, documents, and business reports.
-
-Featuring a **local-first SQLite architecture** with multi-device Firebase cloud synchronization, Worklist ensures uninterrupted field productivity even in zero-connectivity environments.
-
----
-
-## Key Features
-
-- **Site & Worker Management** — track multiple construction sites, assign workers, monitor active status, maintain contact and role records
-- **Attendance & Payroll** — daily attendance logging, advance payment tracking, construction payment milestones, automated salary and payroll calculations
-- **Inventory & Stock Control** — store product tracking, material allocation per site, consumption analytics
-- **Services & Documents** — site-specific subcontractor services, worker certifications, safety documents, compliance records
-- **Advanced Notification Engine** — background rule evaluator with alerts for payroll due dates, attendance gaps and stock thresholds (Android WorkManager, Windows in-process timer)
-- **Offline-First Sync** — local SQLite storage with Google sign-in and automatic Firebase Realtime Database mirroring plus latest-wins conflict resolution
-
----
-
 ## Professional UI Showcase
 
 ![Worklist Dashboard](https://i.imgur.com/placeholder1.png)  
@@ -45,6 +26,15 @@ Featuring a **local-first SQLite architecture** with multi-device Firebase cloud
 
 > **Note**: Replace the placeholder images with actual screenshots from your device. Screenshots should be taken from real device usage to showcase the responsive layout across phone, tablet, and desktop platforms. The UI maintains consistent styling using Material Design components with custom branding.
 
+## Key Features
+
+- **Site & Worker Management** — track multiple construction sites, assign workers, monitor active status, maintain contact and role records
+- **Attendance & Payroll** — daily attendance logging, advance payment tracking, construction payment milestones, automated salary and payroll calculations
+- **Inventory & Stock Control** — store product tracking, material allocation per site, consumption analytics
+- **Services & Documents** — site-specific subcontractor services, worker certifications, safety documents, compliance records
+- **Advanced Notification Engine** — background rule evaluator with alerts for payroll due dates, attendance gaps and stock thresholds (Android WorkManager, Windows in-process timer)
+- **Offline-First Sync** — local SQLite storage with Google sign-in and automatic Firebase Realtime Database mirroring plus latest-wins conflict resolution
+
 ## Platforms
 
 | Platform | Target | Build Command |
@@ -52,9 +42,7 @@ Featuring a **local-first SQLite architecture** with multi-device Firebase cloud
 | Windows | Desktop (x64) | `flutter build windows --release` |
 | Android | Phone / tablet | `flutter build apk --release` |
 
-> **Windows Note**: Requires Visual Studio 2022 with C++ desktop development workload. See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed setup instructions.
-
----
+> **Windows Note**: Requires Visual Studio 2022 with "Desktop development with C++" workload. See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed installation steps.
 
 ## Tech Stack
 
@@ -69,8 +57,6 @@ Featuring a **local-first SQLite architecture** with multi-device Firebase cloud
 | Maps | `flutter_map` + `latlong2` + `geolocator` |
 | Other | `pdf` report generation, `barcode_widget`, `simple_barcode_scanner`, `file_picker` |
 
----
-
 ## Architecture
 
 - **Data layer** — single user-scoped SQLite database with foreign keys and covering indexes. Per-user row isolation via `user_id`. Encapsulated repositories: `DashboardRepository`, `WorkerRepository`, `InventoryRepository`, `SiteRepository`
@@ -79,8 +65,6 @@ Featuring a **local-first SQLite architecture** with multi-device Firebase cloud
 - **State** — `provider` for app-wide providers (`AuthProvider`, `SiteProvider`, `WorkerProvider`, `StoreProductProvider`, `UserServiceProvider`, `SyncService`, theme)
 
 See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) for the full component map.
-
----
 
 ## Getting Started
 
@@ -105,40 +89,10 @@ flutter run -d <android-device>     # Android
 
 ```bash
 flutter build apk --release         # Android APK
-flutter build windows --release     # Windows desktop
+flutter build windows --release     # Windows desktop (requires setup)
 ```
 
----
-
-## Project Layout
-
-```
-lib/
-├── core/
-│   ├── database/      # SQLite helper, migrations, tests
-│   ├── firebase/      # Auth, cloud sync, App Check, FCM
-│   ├── models/        # Site, worker, attendance, payroll, product...
-│   ├── notifications/ # Rule engine, actions, insights, platform services
-│   ├── providers/     # AuthProvider, WorkerProvider, ...
-│   ├── repositories/  # Per-domain data access
-│   └── services/      # PDF reports, helpers
-├── features/          # UI screens grouped by domain
-│   ├── account/ ai_assistant/ auth/ dashboard/ documents/
-│   ├── leave/ notifications/ payroll/ products/ reports/
-│   └── services/ shifts/ sites/ stock/ sync/ workers/
-└── shared/widgets/    # Reusable UI components
-```
-
----
-
-## Release Artifacts
-
-Releases are published under the repository **Releases** tab. Local build outputs:
-
-- `build/app/outputs/apk/release/app-release.apk` — Android release
-- `build/windows/x64/runner/Release/` — Windows release folder (when build environment is configured)
-
----
+Release assets are published under the repository **Releases** tab. APK asset is available at `build/app/outputs/apk/release/app-release.apk`; Windows build output is in `build/windows/x64/runner/Release/` (when build environment is configured).
 
 ## Documentation
 
